@@ -1,7 +1,9 @@
 package com.situ.jifeng.member.api;
 
 import com.github.pagehelper.PageInfo;
+import com.situ.jifeng.common.BusinessException;
 import com.situ.jifeng.common.JsonResp;
+import com.situ.jifeng.common.JwtUtil;
 import com.situ.jifeng.common.PaginateInfo;
 import com.situ.jifeng.spi.model.LoginParam;
 import com.situ.jifeng.spi.model.LoginUserInfo;
@@ -39,15 +41,47 @@ public class MemberApi {
     }
 
     @GetMapping("/id/{id}")
-    public JsonResp findById(@PathVariable Long id) {
+    public JsonResp findById(@PathVariable Long id,
+                             @RequestHeader(name = "X-User-Id", required = false) String userId,
+                             @RequestHeader(name = "X-Audience", required = false) String audience) {
+        assertSelf(id, userId, null, null, audience);
         MemberEntity me = memberService.findById(id);
         return JsonResp.success(me);
     }
 
     @GetMapping("/account/{account}")
-    public JsonResp findByAccount(@PathVariable String account) {
+    public JsonResp findByAccount(@PathVariable String account,
+                                  @RequestHeader(name = "X-User-Name", required = false) String user,
+                                  @RequestHeader(name = "X-Audience", required = false) String audience) {
+        assertSelf(null, null, account, user, audience);
         MemberEntity me = memberService.findByAccount(account);
         return JsonResp.success(me);
+    }
+
+    /**
+     * 会员只能查看自己的资料（需求 7.2-3 的同类要求）。
+     *
+     * <p>判定规则与 order-api 保持一致：</p>
+     * <ul>
+     *   <li>无 {@code X-Audience} 头 → 走的是服务间直连而非网关，放行。
+     *       （本服务的查询接口目前没有服务间调用方，这条规则是为了与 order-api 统一，
+     *       那里 seckill-api 确实会用 Feign 调 {@code /api/orders/seckill-no/{sno}}）</li>
+     *   <li>{@code admin} → 后台会员管理要看任意会员，放行</li>
+     *   <li>{@code member} → 按 id 或 account 比对令牌里的身份</li>
+     * </ul>
+     *
+     * <p>注意比对 id 时必须先确认 audience 是 member：{@code member} 表与 {@code user} 表的
+     * 主键是两套独立空间，后台账号的 userId 和某个会员的 id 完全可能相同。</p>
+     */
+    private void assertSelf(Long id, String userId, String account, String user, String audience) {
+        if (audience == null || JwtUtil.AUDIENCE_ADMIN.equals(audience)) {
+            return;
+        }
+        boolean idOk = id == null || (userId != null && userId.equals(String.valueOf(id)));
+        boolean accountOk = account == null || (user != null && user.equals(account));
+        if (!idOk || !accountOk) {
+            throw new BusinessException(403, "无权查看他人资料");
+        }
     }
 
     /**
