@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.situ.jifeng.rbac.mapper.RbacMenuMapper">
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Select">
+        select id,
+               parent_id,
+               resource_id,
+               name,
+               icon,
+               url,
+               sort,
+               description,
+               created_time,
+               created_by,
+               updated_time,
+               updated_by
+        from t_rbac_menu
+    </sql>
+
+    <!-- 查询所有菜单 -->
+    <select id="findAll" resultType="RbacMenuEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="parentId != null">
+                and parent_id = #{parentId}
+            </if>
+            <if test="resourceId != null">
+                and resource_id = #{resourceId}
+            </if>
+            <if test="name!=null and name!=''">
+                <bind name="nameLike" value="'%'+name+'%'"/>
+                and name like #{nameLike}
+            </if>
+            <if test="icon!=null and icon!=''">
+                <bind name="iconLike" value="'%'+icon+'%'"/>
+                and icon like #{iconLike}
+            </if>
+            <if test="url!=null and url!=''">
+                <bind name="urlLike" value="'%'+url+'%'"/>
+                and url like #{urlLike}
+            </if>
+            <if test="sort != null">
+                and sort = #{sort}
+            </if>
+            <if test="description!=null and description!=''">
+                <bind name="descriptionLike" value="'%'+description+'%'"/>
+                and description like #{descriptionLike}
+            </if>
+        </where>
+        order by sort
+    </select>
+
+    <select id="findById" resultType="RbacMenuEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into t_rbac_menu (parent_id, resource_id, name, icon, url, sort, description,
+                                 created_time, updated_time, created_by, updated_by)
+        values (#{parentId}, #{resourceId}, #{name}, #{icon}, #{url}, #{sort}, #{description},
+                #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+
+    <update id="update">
+        update t_rbac_menu
+        <set>
+            <if test="parentId!=null">parent_id = #{parentId},</if>
+            <if test="resourceId!=null">resource_id = #{resourceId},</if>
+            <if test="name!=null and name!=''">name = #{name},</if>
+            <if test="icon!=null and icon!=''">icon = #{icon},</if>
+            <if test="url!=null and url!=''">url = #{url},</if>
+            <if test="sort!=null">sort = #{sort},</if>
+            <if test="description!=null and description!=''">description = #{description},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null and updatedBy!=''">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from t_rbac_menu
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 动态菜单：用户 → 用户组 → 角色 → 权限 → 资源 → 菜单 -->
+    <select id="findMenusByUserId" resultType="RbacMenuEntity">
+        select distinct m.id, m.parent_id, m.resource_id, m.name, m.icon, m.url, m.sort,
+               m.description, m.created_time, m.created_by, m.updated_time, m.updated_by
+        from `user` u
+                 join t_rbac_user_group ug on ug.user_id = u.id
+                 join t_rbac_group g on g.id = ug.group_id and g.enabled = 1
+                 join t_rbac_group_role gr on gr.group_id = g.id
+                 join t_rbac_role rl on rl.id = gr.role_id and rl.enabled = 1
+                 join t_rbac_role_perm rp on rp.role_id = rl.id
+                 join t_rbac_perm p on p.id = rp.perm_id and p.enabled = 1
+                 join t_rbac_perm_resource pr on pr.perm_id = p.id
+                 join t_rbac_resource r on r.id = pr.resource_id
+                 join t_rbac_menu m on m.resource_id = r.id
+        where u.id = #{userId}
+          and u.enabled = 1
+          and u.locked = 0
+        order by m.sort
+    </select>
+
+</mapper>

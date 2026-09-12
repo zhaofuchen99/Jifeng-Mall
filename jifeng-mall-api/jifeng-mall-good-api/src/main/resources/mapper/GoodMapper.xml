@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.situ.jifeng.good.mapper.GoodMapper">
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Select">
+        select id,
+               spu_no,
+               name,
+               alias,
+               summary,
+               category_id,
+               brand_id,
+               mark_price,
+               price,
+               qty,
+               pic,
+               pic2,
+               detail_pics,
+               detail,
+               is_take_down,
+               is_hot,
+               is_del,
+               is_seckill,
+               description,
+               created_time,
+               created_by,
+               updated_time,
+               updated_by
+        from good
+    </sql>
+
+    <!-- 查询所有商品 -->
+    <select id="findAll" resultType="GoodEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="spuNo!=null and spuNo!=''">
+                <bind name="spuNoLike" value="'%'+spuNo+'%'"/>
+                and spu_no like #{spuNoLike}
+            </if>
+            <if test="name!=null and name!=''">
+                <bind name="nameLike" value="'%'+name+'%'"/>
+                and `name` like #{nameLike}
+            </if>
+            <if test="alias!=null and alias!=''">
+                <bind name="aliasLike" value="'%'+alias+'%'"/>
+                and alias like #{aliasLike}
+            </if>
+            <if test="categoryId != null">
+                and category_id = #{categoryId}
+            </if>
+            <if test="brandId != null">
+                and brand_id = #{brandId}
+            </if>
+            <if test="isTakeDown != null">
+                and is_take_down = #{isTakeDown}
+            </if>
+            <if test="isHot != null">
+                and is_hot = #{isHot}
+            </if>
+            <if test="isDel != null">
+                and is_del = #{isDel}
+            </if>
+            <if test="isSeckill != null">
+                and is_seckill = #{isSeckill}
+            </if>
+            <if test="description!=null and description!=''">
+                <bind name="descriptionLike" value="'%'+description+'%'"/>
+                and `description` like #{descriptionLike}
+            </if>
+        </where>
+        order by id
+    </select>
+
+    <select id="findById" resultType="GoodEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into good (spu_no, name, alias, summary, category_id, brand_id,
+                          mark_price, price, qty, pic, pic2, detail_pics, detail,
+                          is_take_down, is_hot, is_del, is_seckill, description,
+                          created_time, updated_time, created_by, updated_by)
+        values (#{spuNo}, #{name}, #{alias}, #{summary}, #{categoryId}, #{brandId},
+                #{markPrice}, #{price}, #{qty}, #{pic}, #{pic2}, #{detailPics}, #{detail},
+                #{isTakeDown}, #{isHot}, #{isDel}, #{isSeckill}, #{description},
+                #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+
+    <update id="update">
+        update good
+        <set>
+            <if test="spuNo!=null and spuNo!=''">spu_no = #{spuNo},</if>
+            <if test="name!=null and name!=''">`name` = #{name},</if>
+            <if test="alias!=null and alias!=''">alias = #{alias},</if>
+            <if test="summary!=null and summary!=''">summary = #{summary},</if>
+            <if test="categoryId!=null">category_id = #{categoryId},</if>
+            <if test="brandId!=null">brand_id = #{brandId},</if>
+            <if test="markPrice!=null">mark_price = #{markPrice},</if>
+            <if test="price!=null">price = #{price},</if>
+            <if test="qty!=null">qty = #{qty},</if>
+            <if test="pic!=null and pic!=''">pic = #{pic},</if>
+            <if test="pic2!=null and pic2!=''">pic2 = #{pic2},</if>
+            <if test="detailPics!=null and detailPics!=''">detail_pics = #{detailPics},</if>
+            <if test="detail!=null and detail!=''">detail = #{detail},</if>
+            <if test="isTakeDown!=null">is_take_down = #{isTakeDown},</if>
+            <if test="isHot!=null">is_hot = #{isHot},</if>
+            <if test="isDel!=null">is_del = #{isDel},</if>
+            <if test="isSeckill!=null">is_seckill = #{isSeckill},</if>
+            <if test="description!=null and description!=''">description = #{description},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from good
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 扣减库存（防超卖）：仅库存充足时扣减 -->
+    <update id="deductStock">
+        update good
+        set qty = qty - #{qty}, updated_time = NOW()
+        where id = #{id}
+          and qty >= #{qty}
+          and is_del = 0
+          and is_take_down = 0
+    </update>
+
+    <!-- 回补库存：取消订单 / 超时关单时 -->
+    <update id="addBackStock">
+        update good
+        set qty = qty + #{qty}, updated_time = NOW()
+        where id = #{id}
+    </update>
+
+</mapper>

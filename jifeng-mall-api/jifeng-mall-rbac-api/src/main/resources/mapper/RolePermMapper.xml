@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.situ.jifeng.rbac.mapper.RolePermMapper">
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Select">
+        select id,
+               role_id,
+               perm_id
+        from t_rbac_role_perm
+    </sql>
+
+    <!-- 查询所有角色权限关联 -->
+    <select id="findAll" resultType="RolePermEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="roleId != null">
+                and role_id = #{roleId}
+            </if>
+            <if test="permId != null">
+                and perm_id = #{permId}
+            </if>
+        </where>
+        order by id
+    </select>
+
+    <select id="findById" resultType="RolePermEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+
+    <select id="findByRoleId" resultType="RolePermEntity">
+        <include refid="Base_Select"/>
+        where role_id = #{roleId}
+        order by id
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into t_rbac_role_perm (role_id, perm_id)
+        values (#{roleId}, #{permId})
+    </insert>
+
+    <update id="update">
+        update t_rbac_role_perm
+        <set>
+            <if test="roleId!=null">role_id = #{roleId},</if>
+            <if test="permId!=null">perm_id = #{permId},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from t_rbac_role_perm
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

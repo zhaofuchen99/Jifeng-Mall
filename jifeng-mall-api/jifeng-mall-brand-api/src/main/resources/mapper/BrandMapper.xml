@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.situ.jifeng.brand.mapper.BrandMapper">
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Select">
+        select id,
+               name,
+               company,
+               site,
+               description,
+               created_time,
+               created_by,
+               updated_time,
+               updated_by
+        from brand
+    </sql>
+
+    <!-- 查询所有品牌 -->
+    <select id="findAll" resultType="BrandEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="name!=null and name!=''">
+                <bind name="nameLike" value="'%'+name+'%'"/>
+                and `name` like #{nameLike}
+            </if>
+            <if test="company!=null and company!=''">
+                <bind name="companyLike" value="'%'+company+'%'"/>
+                and company like #{companyLike}
+            </if>
+            <if test="description!=null and description!=''">
+                <bind name="descriptionLike" value="'%'+description+'%'"/>
+                and `description` like #{descriptionLike}
+            </if>
+        </where>
+        order by id
+    </select>
+
+    <select id="findById" resultType="BrandEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into brand (name, company, site, description,
+                           created_time, updated_time, created_by, updated_by)
+        values (#{name}, #{company}, #{site}, #{description},
+                #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+
+    <update id="update">
+        update brand
+        <set>
+            <if test="name!=null and name!=''">`name` = #{name},</if>
+            <if test="company!=null and company!=''">company = #{company},</if>
+            <if test="site!=null and site!=''">site = #{site},</if>
+            <if test="description!=null and description!=''">description = #{description},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from brand
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

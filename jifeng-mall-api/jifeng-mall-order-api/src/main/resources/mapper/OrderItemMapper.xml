@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.situ.jifeng.order.mapper.OrderItemMapper">
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Select">
+        select id,
+               order_id,
+               good_id,
+               deal_price,
+               `count`,
+               good_name,
+               good_pic,
+               good_desc,
+               description
+        from order_item
+    </sql>
+
+    <!-- 查询所有订单项 -->
+    <select id="findAll" resultType="OrderItemEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="orderId != null">
+                and order_id = #{orderId}
+            </if>
+            <if test="goodId != null">
+                and good_id = #{goodId}
+            </if>
+            <if test="goodName!=null and goodName!=''">
+                <bind name="goodNameLike" value="'%'+goodName+'%'"/>
+                and good_name like #{goodNameLike}
+            </if>
+        </where>
+        order by id
+    </select>
+
+    <select id="findById" resultType="OrderItemEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+
+    <select id="findByOrderId" resultType="OrderItemEntity">
+        <include refid="Base_Select"/>
+        where order_id = #{orderId}
+        order by id
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into order_item (order_id, good_id, deal_price, `count`, good_name, good_pic, good_desc, description)
+        values (#{orderId}, #{goodId}, #{dealPrice}, #{count}, #{goodName}, #{goodPic}, #{goodDesc}, #{description})
+    </insert>
+
+    <update id="update">
+        update order_item
+        <set>
+            <if test="orderId!=null">order_id = #{orderId},</if>
+            <if test="goodId!=null">good_id = #{goodId},</if>
+            <if test="dealPrice!=null">deal_price = #{dealPrice},</if>
+            <if test="count!=null">`count` = #{count},</if>
+            <if test="goodName!=null and goodName!=''">good_name = #{goodName},</if>
+            <if test="goodPic!=null and goodPic!=''">good_pic = #{goodPic},</if>
+            <if test="goodDesc!=null and goodDesc!=''">good_desc = #{goodDesc},</if>
+            <if test="description!=null and description!=''">description = #{description},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from order_item
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

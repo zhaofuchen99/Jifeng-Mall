@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.situ.jifeng.seckill.mapper.SeckillGoodMapper">
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Select">
+        select id,
+               seckill_id,
+               good_id,
+               seckill_price,
+               stock,
+               sold,
+               limit_per_user,
+               description,
+               created_time,
+               created_by,
+               updated_time,
+               updated_by
+        from seckill_good
+    </sql>
+
+    <!-- 查询所有秒杀活动商品 -->
+    <select id="findAll" resultType="SeckillGoodEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="seckillId != null">
+                and seckill_id = #{seckillId}
+            </if>
+            <if test="goodId != null">
+                and good_id = #{goodId}
+            </if>
+            <if test="description!=null and description!=''">
+                <bind name="descriptionLike" value="'%'+description+'%'"/>
+                and `description` like #{descriptionLike}
+            </if>
+        </where>
+        order by id
+    </select>
+
+    <select id="findById" resultType="SeckillGoodEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+
+    <!-- 查某秒杀活动下的所有商品 -->
+    <select id="findBySeckillId" resultType="SeckillGoodEntity">
+        <include refid="Base_Select"/>
+        where seckill_id = #{seckillId}
+        order by id
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into seckill_good (seckill_id, good_id, seckill_price, stock, sold, limit_per_user, description,
+                                  created_time, updated_time, created_by, updated_by)
+        values (#{seckillId}, #{goodId}, #{seckillPrice}, #{stock}, #{sold}, #{limitPerUser}, #{description},
+                #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+
+    <update id="update">
+        update seckill_good
+        <set>
+            <if test="seckillId!=null">seckill_id = #{seckillId},</if>
+            <if test="goodId!=null">good_id = #{goodId},</if>
+            <if test="seckillPrice!=null">seckill_price = #{seckillPrice},</if>
+            <if test="stock!=null">stock = #{stock},</if>
+            <if test="sold!=null">sold = #{sold},</if>
+            <if test="limitPerUser!=null">limit_per_user = #{limitPerUser},</if>
+            <if test="description!=null and description!=''">`description` = #{description},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from seckill_good
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 回补秒杀库存：stock+、sold-（超时关单） -->
+    <update id="increaseStock">
+        update seckill_good
+        set stock = stock + #{qty},
+            sold  = GREATEST(sold - #{qty}, 0),
+            updated_time = NOW()
+        where id = #{id}
+    </update>
+
+    <!-- 成交扣减秒杀库存：sold+、stock-（DB 兜底防超卖，条件更新，与 increaseStock 对称） -->
+    <update id="decreaseStock">
+        update seckill_good
+        set sold = sold + #{qty},
+            stock = GREATEST(stock - #{qty}, 0),
+            updated_time = NOW()
+        where id = #{id}
+          and stock &gt;= #{qty}
+    </update>
+
+</mapper>

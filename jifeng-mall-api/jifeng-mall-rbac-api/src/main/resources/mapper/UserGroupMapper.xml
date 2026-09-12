@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.situ.jifeng.rbac.mapper.UserGroupMapper">
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Select">
+        select id,
+               user_id,
+               group_id
+        from t_rbac_user_group
+    </sql>
+
+    <!-- 查询所有用户组关联 -->
+    <select id="findAll" resultType="UserGroupEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="userId != null">
+                and user_id = #{userId}
+            </if>
+            <if test="groupId != null">
+                and group_id = #{groupId}
+            </if>
+        </where>
+        order by id
+    </select>
+
+    <select id="findById" resultType="UserGroupEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+
+    <select id="findByGroupId" resultType="UserGroupEntity">
+        <include refid="Base_Select"/>
+        where group_id = #{groupId}
+        order by id
+    </select>
+
+    <select id="findByUserId" resultType="UserGroupEntity">
+        <include refid="Base_Select"/>
+        where user_id = #{userId}
+        order by id
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into t_rbac_user_group (user_id, group_id)
+        values (#{userId}, #{groupId})
+    </insert>
+
+    <update id="update">
+        update t_rbac_user_group
+        <set>
+            <if test="userId!=null">user_id = #{userId},</if>
+            <if test="groupId!=null">group_id = #{groupId},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from t_rbac_user_group
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

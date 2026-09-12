@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.situ.jifeng.member.address.mapper.MemberAddressMapper">
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Select">
+        select id,
+               member_account,
+               receiver,
+               phone,
+               addr_id,
+               addr_detail,
+               is_default
+        from member_address
+    </sql>
+
+    <!-- 查询所有会员地址 -->
+    <select id="findAll" resultType="MemberAddressEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="memberAccount!=null and memberAccount!=''">
+                <bind name="memberAccountLike" value="'%'+memberAccount+'%'"/>
+                and member_account like #{memberAccountLike}
+            </if>
+            <if test="receiver!=null and receiver!=''">
+                <bind name="receiverLike" value="'%'+receiver+'%'"/>
+                and receiver like #{receiverLike}
+            </if>
+            <if test="addrId != null">
+                and addr_id = #{addrId}
+            </if>
+            <if test="isDefault != null">
+                and is_default = #{isDefault}
+            </if>
+        </where>
+        order by id
+    </select>
+
+    <select id="findById" resultType="MemberAddressEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into member_address (member_account, receiver, phone, addr_id, addr_detail, is_default)
+        values (#{memberAccount}, #{receiver}, #{phone}, #{addrId}, #{addrDetail}, #{isDefault})
+    </insert>
+
+    <update id="update">
+        update member_address
+        <set>
+            <if test="memberAccount!=null and memberAccount!=''">member_account = #{memberAccount},</if>
+            <if test="receiver!=null and receiver!=''">receiver = #{receiver},</if>
+            <if test="phone!=null and phone!=''">phone = #{phone},</if>
+            <if test="addrId!=null">addr_id = #{addrId},</if>
+            <if test="addrDetail!=null and addrDetail!=''">addr_detail = #{addrDetail},</if>
+            <if test="isDefault!=null">is_default = #{isDefault},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from member_address
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 清除某会员的默认地址（excludeId 不为空时排除该条） -->
+    <update id="clearDefault">
+        update member_address
+        set is_default = 0
+        where member_account = #{memberAccount}
+        <if test="excludeId != null">
+            and id != #{excludeId}
+        </if>
+    </update>
+
+    <!-- 将指定地址置为默认地址 -->
+    <update id="setDefault">
+        update member_address
+        set is_default = 1
+        where id = #{id}
+    </update>
+
+</mapper>

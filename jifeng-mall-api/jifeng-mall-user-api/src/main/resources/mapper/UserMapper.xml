@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.situ.jifeng.user.mapper.UserMapper">
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Select">
+        select id,
+               username,
+               password,
+               avatar_url,
+               enabled,
+               status,
+               locked,
+               user_expire_time,
+               credential_expire_time,
+               login_times,
+               last_login_time,
+               last_login_ip,
+               description,
+               op_mode,
+               created_time,
+               created_by,
+               updated_time,
+               updated_by
+        from `user`
+    </sql>
+
+    <!-- 查询所有用户 -->
+    <select id="findAll" resultType="UserEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="username!=null and username!=''">
+                <bind name="usernameLike" value="'%'+username+'%'"/>
+                and username like #{usernameLike}
+            </if>
+            <if test="enabled != null">
+                and enabled = #{enabled}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+            <if test="locked != null">
+                and locked = #{locked}
+            </if>
+            <if test="lastLoginIp!=null and lastLoginIp!=''">
+                and last_login_ip = #{lastLoginIp}
+            </if>
+        </where>
+        order by id
+    </select>
+
+    <select id="findById" resultType="UserEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+
+    <select id="findByUsername" resultType="UserEntity">
+        <include refid="Base_Select"/>
+        where username = #{username}
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into `user` (username, password, avatar_url, enabled, status, locked,
+                           user_expire_time, credential_expire_time, login_times,
+                           last_login_time, last_login_ip, description, op_mode,
+                           created_time, updated_time, created_by, updated_by)
+        values (#{username}, #{password}, #{avatarUrl}, #{enabled}, #{status}, #{locked},
+                #{userExpireTime}, #{credentialExpireTime}, #{loginTimes},
+                #{lastLoginTime}, #{lastLoginIp}, #{description}, #{opMode},
+                #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+
+    <update id="update">
+        update `user`
+        <set>
+            <if test="username!=null and username!=''">username = #{username},</if>
+            <if test="password!=null and password!=''">password = #{password},</if>
+            <if test="avatarUrl!=null and avatarUrl!=''">avatar_url = #{avatarUrl},</if>
+            <if test="enabled!=null">enabled = #{enabled},</if>
+            <if test="status!=null">status = #{status},</if>
+            <if test="locked!=null">locked = #{locked},</if>
+            <if test="userExpireTime!=null">user_expire_time = #{userExpireTime},</if>
+            <if test="credentialExpireTime!=null">credential_expire_time = #{credentialExpireTime},</if>
+            <if test="loginTimes!=null">login_times = #{loginTimes},</if>
+            <if test="lastLoginTime!=null">last_login_time = #{lastLoginTime},</if>
+            <if test="lastLoginIp!=null and lastLoginIp!=''">last_login_ip = #{lastLoginIp},</if>
+            <if test="description!=null and description!=''">description = #{description},</if>
+            <if test="opMode!=null">op_mode = #{opMode},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null and updatedBy!=''">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from `user`
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

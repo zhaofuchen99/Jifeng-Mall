@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.situ.jifeng.seckill.mapper.SeckillMapper">
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Select">
+        select id,
+               name,
+               enabled,
+               start_time,
+               end_time,
+               description,
+               created_time,
+               created_by,
+               updated_time,
+               updated_by
+        from seckill
+    </sql>
+
+    <!-- 查询所有秒杀活动 -->
+    <select id="findAll" resultType="SeckillEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="name!=null and name!=''">
+                <bind name="nameLike" value="'%'+name+'%'"/>
+                and `name` like #{nameLike}
+            </if>
+            <if test="enabled != null">
+                and enabled = #{enabled}
+            </if>
+            <if test="description!=null and description!=''">
+                <bind name="descriptionLike" value="'%'+description+'%'"/>
+                and `description` like #{descriptionLike}
+            </if>
+        </where>
+        order by id
+    </select>
+
+    <select id="findById" resultType="SeckillEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+
+    <!-- 查进行中/即将开始的活动（enabled=1 且未彻底结束） -->
+    <select id="findActive" resultType="SeckillEntity">
+        <include refid="Base_Select"/>
+        where enabled = 1
+          and end_time &gt; now()
+        order by start_time
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into seckill (name, enabled, start_time, end_time, description,
+                             created_time, updated_time, created_by, updated_by)
+        values (#{name}, #{enabled}, #{startTime}, #{endTime}, #{description},
+                #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+
+    <update id="update">
+        update seckill
+        <set>
+            <if test="name!=null and name!=''">`name` = #{name},</if>
+            <if test="enabled!=null">enabled = #{enabled},</if>
+            <if test="startTime!=null">start_time = #{startTime},</if>
+            <if test="endTime!=null">end_time = #{endTime},</if>
+            <if test="description!=null and description!=''">`description` = #{description},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from seckill
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

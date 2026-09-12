@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: jifeng-mall-region-api
+
+  cloud:
+    nacos:
+      discovery:
+        port: 10015
+      config:
+        file-extension: yaml
+        server-addr: 127.0.0.1:8848
+        username: nacos
+        password: 123456
+        group: jifeng-mall
+        namespace: jifeng-mall
+
+  config:
+    import: nacos:jifeng-mall-common.yaml
+
+server:
+  port: 10015

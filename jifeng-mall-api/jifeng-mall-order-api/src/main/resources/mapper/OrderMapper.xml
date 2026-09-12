@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.situ.jifeng.order.mapper.OrderMapper">
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Select">
+        select id,
+               order_no,
+               seckill_no,
+               member_account,
+               total_pay,
+               pay_type,
+               alipay_trade_no,
+               checkout_time,
+               pay_time,
+               ship_time,
+               accept_time,
+               status,
+               receiver_addr_id,
+               receiver_name,
+               receiver_phone,
+               receiver_addr_detail,
+               order_comment,
+               refund_status,
+               is_del,
+               description,
+               created_time,
+               created_by,
+               updated_time,
+               updated_by
+        from `order`
+    </sql>
+
+    <!-- 查询所有订单 -->
+    <select id="findAll" resultType="OrderEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="orderNo!=null and orderNo!=''">
+                <bind name="orderNoLike" value="'%'+orderNo+'%'"/>
+                and order_no like #{orderNoLike}
+            </if>
+            <if test="seckillNo!=null and seckillNo!=''">
+                <bind name="seckillNoLike" value="'%'+seckillNo+'%'"/>
+                and seckill_no like #{seckillNoLike}
+            </if>
+            <if test="memberAccount!=null and memberAccount!=''">
+                <bind name="memberAccountLike" value="'%'+memberAccount+'%'"/>
+                and member_account like #{memberAccountLike}
+            </if>
+            <if test="payType!=null and payType!=''">
+                <bind name="payTypeLike" value="'%'+payType+'%'"/>
+                and pay_type like #{payTypeLike}
+            </if>
+            <if test="status!=null and status!=''">
+                and status = #{status}
+            </if>
+            <if test="receiverName!=null and receiverName!=''">
+                <bind name="receiverNameLike" value="'%'+receiverName+'%'"/>
+                and receiver_name like #{receiverNameLike}
+            </if>
+            <if test="receiverPhone!=null and receiverPhone!=''">
+                <bind name="receiverPhoneLike" value="'%'+receiverPhone+'%'"/>
+                and receiver_phone like #{receiverPhoneLike}
+            </if>
+            <if test="isDel != null">
+                and is_del = #{isDel}
+            </if>
+        </where>
+        order by id
+    </select>
+
+    <select id="findById" resultType="OrderEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+
+    <select id="findByOrderNo" resultType="OrderEntity">
+        <include refid="Base_Select"/>
+        where order_no = #{orderNo}
+    </select>
+
+    <!-- 按秒杀流水号查订单（秒杀异步下单幂等：同一 seckillNo 仅一张订单） -->
+    <select id="findBySeckillNo" resultType="OrderEntity">
+        <include refid="Base_Select"/>
+        where seckill_no = #{seckillNo}
+        order by id
+        limit 1
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into `order` (order_no, seckill_no, member_account, total_pay, pay_type,
+                            alipay_trade_no, checkout_time, pay_time, ship_time, accept_time,
+                            status, receiver_addr_id, receiver_name, receiver_phone,
+                            receiver_addr_detail, order_comment, refund_status, is_del, description,
+                            created_time, updated_time, created_by, updated_by)
+        values (#{orderNo}, #{seckillNo}, #{memberAccount}, #{totalPay}, #{payType},
+                #{alipayTradeNo}, #{checkoutTime}, #{payTime}, #{shipTime}, #{acceptTime},
+                #{status}, #{receiverAddrId}, #{receiverName}, #{receiverPhone},
+                #{receiverAddrDetail}, #{orderComment}, #{refundStatus}, #{isDel}, #{description},
+                #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+
+    <update id="update">
+        update `order`
+        <set>
+            <if test="orderNo!=null and orderNo!=''">order_no = #{orderNo},</if>
+            <if test="seckillNo!=null and seckillNo!=''">seckill_no = #{seckillNo},</if>
+            <if test="memberAccount!=null and memberAccount!=''">member_account = #{memberAccount},</if>
+            <if test="totalPay!=null">total_pay = #{totalPay},</if>
+            <if test="payType!=null and payType!=''">pay_type = #{payType},</if>
+            <if test="alipayTradeNo!=null and alipayTradeNo!=''">alipay_trade_no = #{alipayTradeNo},</if>
+            <if test="checkoutTime!=null">checkout_time = #{checkoutTime},</if>
+            <if test="payTime!=null">pay_time = #{payTime},</if>
+            <if test="shipTime!=null">ship_time = #{shipTime},</if>
+            <if test="acceptTime!=null">accept_time = #{acceptTime},</if>
+            <if test="status!=null and status!=''">status = #{status},</if>
+            <if test="receiverAddrId!=null">receiver_addr_id = #{receiverAddrId},</if>
+            <if test="receiverName!=null and receiverName!=''">receiver_name = #{receiverName},</if>
+            <if test="receiverPhone!=null and receiverPhone!=''">receiver_phone = #{receiverPhone},</if>
+            <if test="receiverAddrDetail!=null and receiverAddrDetail!=''">receiver_addr_detail = #{receiverAddrDetail},</if>
+            <if test="orderComment!=null and orderComment!=''">order_comment = #{orderComment},</if>
+            <if test="refundStatus!=null and refundStatus!=''">refund_status = #{refundStatus},</if>
+            <if test="isDel!=null">is_del = #{isDel},</if>
+            <if test="description!=null and description!=''">description = #{description},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null and updatedBy!=''">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from `order`
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

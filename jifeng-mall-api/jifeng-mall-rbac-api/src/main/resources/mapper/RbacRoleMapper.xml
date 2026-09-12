@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.situ.jifeng.rbac.mapper.RbacRoleMapper">
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Select">
+        select id,
+               name,
+               enabled,
+               description,
+               created_time,
+               created_by,
+               updated_time,
+               updated_by
+        from t_rbac_role
+    </sql>
+
+    <!-- 查询所有角色 -->
+    <select id="findAll" resultType="RbacRoleEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="name!=null and name!=''">
+                <bind name="nameLike" value="'%'+name+'%'"/>
+                and name like #{nameLike}
+            </if>
+            <if test="enabled != null">
+                and enabled = #{enabled}
+            </if>
+            <if test="description!=null and description!=''">
+                <bind name="descriptionLike" value="'%'+description+'%'"/>
+                and description like #{descriptionLike}
+            </if>
+        </where>
+        order by id
+    </select>
+
+    <select id="findById" resultType="RbacRoleEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into t_rbac_role (name, enabled, description,
+                                 created_time, updated_time, created_by, updated_by)
+        values (#{name}, #{enabled}, #{description},
+                #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+
+    <update id="update">
+        update t_rbac_role
+        <set>
+            <if test="name!=null and name!=''">name = #{name},</if>
+            <if test="enabled!=null">enabled = #{enabled},</if>
+            <if test="description!=null and description!=''">description = #{description},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null and updatedBy!=''">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from t_rbac_role
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

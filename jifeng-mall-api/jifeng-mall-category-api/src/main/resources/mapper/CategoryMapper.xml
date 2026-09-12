@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.situ.jifeng.category.mapper.CategoryMapper">
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Select">
+        select id,
+               parent_id,
+               name,
+               title,
+               tag,
+               icon,
+               summary,
+               sort,
+               description,
+               created_time,
+               created_by,
+               updated_time,
+               updated_by
+        from category
+    </sql>
+
+    <!-- 查询所有分类 -->
+    <select id="findAll" resultType="CategoryEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="parentId != null">
+                and parent_id = #{parentId}
+            </if>
+            <if test="name!=null and name!=''">
+                <bind name="nameLike" value="'%'+name+'%'"/>
+                and `name` like #{nameLike}
+            </if>
+            <if test="title!=null and title!=''">
+                <bind name="titleLike" value="'%'+title+'%'"/>
+                and title like #{titleLike}
+            </if>
+            <if test="summary!=null and summary!=''">
+                <bind name="summaryLike" value="'%'+summary+'%'"/>
+                and summary like #{summaryLike}
+            </if>
+            <if test="description!=null and description!=''">
+                <bind name="descriptionLike" value="'%'+description+'%'"/>
+                and `description` like #{descriptionLike}
+            </if>
+        </where>
+        order by sort, id
+    </select>
+
+    <select id="findById" resultType="CategoryEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into category (parent_id, name, title, tag, icon, summary, sort, description,
+                              created_time, updated_time, created_by, updated_by)
+        values (#{parentId}, #{name}, #{title}, #{tag}, #{icon}, #{summary}, #{sort}, #{description},
+                #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+
+    <update id="update">
+        update category
+        <set>
+            <if test="parentId!=null">parent_id = #{parentId},</if>
+            <if test="name!=null and name!=''">`name` = #{name},</if>
+            <if test="title!=null and title!=''">title = #{title},</if>
+            <if test="tag!=null and tag!=''">tag = #{tag},</if>
+            <if test="icon!=null and icon!=''">icon = #{icon},</if>
+            <if test="summary!=null and summary!=''">summary = #{summary},</if>
+            <if test="sort!=null">sort = #{sort},</if>
+            <if test="description!=null and description!=''">description = #{description},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from category
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

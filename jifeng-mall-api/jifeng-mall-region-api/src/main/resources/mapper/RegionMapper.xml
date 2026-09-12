@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.situ.jifeng.region.mapper.RegionMapper">
+    <!-- 通用查询列 -->
+    <sql id="Base_Select">
+        select id,
+               name,
+               parent_id,
+               sort_order,
+               level,
+               description
+        from t_china_region
+    </sql>
+
+    <!-- 查询所有地区 -->
+    <select id="findAll" resultType="RegionEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="name!=null and name!=''">
+                <bind name="nameLike" value="'%'+name+'%'"/>
+                and name like #{nameLike}
+            </if>
+            <if test="parentId != null">
+                and parent_id = #{parentId}
+            </if>
+            <if test="level != null">
+                and level = #{level}
+            </if>
+        </where>
+        order by parent_id, sort_order, id
+    </select>
+
+    <select id="findById" resultType="RegionEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+</mapper>

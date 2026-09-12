@@ -1,0 +1,238 @@
+/* ============================================================
+   极锋商城 管理后台 — 全局样式
+   后台以「信息密度」为第一优先，所以整体比前台紧凑：
+   更小的圆角、更窄的行高、更克制的配色（主色只用在关键动作上）。
+   ============================================================ */
+
+:root {
+  --brand: #2f6feb;
+  --brand-dark: #1f56c0;
+  --brand-bg: #eef4ff;
+  --accent: #e63946;
+
+  --text-1: #1f2329;
+  --text-2: #4e5969;
+  --text-3: #86909c;
+  --line: #e5e6eb;
+  --line-strong: #d5d8dd;
+  --bg-page: #f2f3f5;
+  --bg-hover: #f7f8fa;
+
+  --radius: 6px;
+  --shadow-sm: 0 1px 3px rgba(31, 35, 41, 0.08);
+  --shadow-md: 0 4px 14px rgba(31, 35, 41, 0.1);
+
+  --sidebar-bg: #1f2733;
+  --sidebar-text: #b6bdc9;
+  --sidebar-active: #2f6feb;
+  --sidebar-width: 220px;
+  --header-height: 56px;
+
+  /* Element Plus 主色 */
+  --el-color-primary: #2f6feb;
+  --el-color-primary-light-3: #6f9bf2;
+  --el-color-primary-light-5: #a3c0f7;
+  --el-color-primary-light-7: #c7d8fa;
+  --el-color-primary-light-8: #d9e4fc;
+  --el-color-primary-light-9: #eef4ff;
+  --el-color-primary-dark-2: #1f56c0;
+  --el-border-radius-base: 4px;
+  --el-font-size-base: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg-page);
+  color: var(--text-1);
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Helvetica Neue', Arial,
+    sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* ---------- 页面骨架 ---------- */
+
+.page {
+  padding: 16px;
+}
+
+/* 查询表单区 */
+.filter-bar {
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 16px 16px 0;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.filter-bar .el-form-item {
+  margin-bottom: 16px;
+}
+
+/* 表格区 */
+.table-card {
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.table-toolbar__title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.table-toolbar__actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.el-pagination {
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+/* 表格里的小图片 */
+.cell-img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: #fff;
+  border: 1px solid var(--line);
+  display: block;
+}
+
+.cell-img--sm {
+  width: 34px;
+  height: 34px;
+}
+
+/* 弹窗底部按钮 */
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* 表单里的图片上传位 */
+.uploader {
+  width: 104px;
+  height: 104px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  background: var(--bg-hover);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.uploader:hover {
+  border-color: var(--brand);
+}
+
+.uploader img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.uploader__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+/* ---------- 工具类 ---------- */
+
+.text-muted {
+  color: var(--text-3);
+}
+
+.text-strong {
+  font-weight: 600;
+}
+
+.text-danger {
+  color: var(--accent);
+}
+
+.price {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.mt-8 {
+  margin-top: 8px;
+}
+.mt-16 {
+  margin-top: 16px;
+}
+.mb-8 {
+  margin-bottom: 8px;
+}
+.mb-16 {
+  margin-bottom: 16px;
+}
+
+.flex {
+  display: flex;
+}
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.flex-center {
+  display: flex;
+  align-items: center;
+}
+.gap-8 {
+  gap: 8px;
+}
+.gap-12 {
+  gap: 12px;
+}
+
+/* 详情弹窗里的只读字段 */
+.desc-label {
+  color: var(--text-3);
+}

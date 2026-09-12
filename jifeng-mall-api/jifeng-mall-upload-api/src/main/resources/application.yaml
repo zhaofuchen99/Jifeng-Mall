@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: jifeng-mall-upload-api
+
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+        username: nacos
+        password: 123456
+        namespace: jifeng-mall
+        group: jifeng-mall
+        port: 10020
+      config:
+        file-extension: yaml
+        server-addr: 127.0.0.1:8848
+        username: nacos
+        password: 123456
+        group: jifeng-mall
+        namespace: jifeng-mall
+
+  config:
+    import: nacos:jifeng-mall-common.yaml
+
+server:
+  port: 10020
+
+my:
+  #文件上传路径
+  upload:
+    #文件存储物理路径
+    location: d:/shoplook2026/upload/
+    #文件访问路径
+    url-prefix: http://localhost:10020/upload

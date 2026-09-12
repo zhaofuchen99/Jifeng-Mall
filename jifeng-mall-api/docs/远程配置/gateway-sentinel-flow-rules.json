@@ -1,0 +1,32 @@
+[
+  {
+    "resource": "seckill-api",
+    "resourceMode": 0,
+    "grade": 1,
+    "count": 500,
+    "intervalSec": 1,
+    "controlBehavior": 0,
+    "burst": 0,
+    "maxQueueingTimeoutMs": 500
+  },
+  {
+    "resource": "order-api",
+    "resourceMode": 0,
+    "grade": 1,
+    "count": 100,
+    "intervalSec": 1,
+    "controlBehavior": 0,
+    "burst": 0,
+    "maxQueueingTimeoutMs": 500
+  },
+  {
+    "resource": "good-api",
+    "resourceMode": 0,
+    "grade": 1,
+    "count": 200,
+    "intervalSec": 1,
+    "controlBehavior": 0,
+    "burst": 0,
+    "maxQueueingTimeoutMs": 500
+  }
+]

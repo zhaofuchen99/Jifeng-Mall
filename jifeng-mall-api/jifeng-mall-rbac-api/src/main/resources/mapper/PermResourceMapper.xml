@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.situ.jifeng.rbac.mapper.PermResourceMapper">
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Select">
+        select id,
+               resource_id,
+               perm_id
+        from t_rbac_perm_resource
+    </sql>
+
+    <!-- 查询所有权限资源关联 -->
+    <select id="findAll" resultType="PermResourceEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="resourceId != null">
+                and resource_id = #{resourceId}
+            </if>
+            <if test="permId != null">
+                and perm_id = #{permId}
+            </if>
+        </where>
+        order by id
+    </select>
+
+    <select id="findById" resultType="PermResourceEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+
+    <select id="findByPermId" resultType="PermResourceEntity">
+        <include refid="Base_Select"/>
+        where perm_id = #{permId}
+        order by id
+    </select>
+
+    <select id="findByResourceId" resultType="PermResourceEntity">
+        <include refid="Base_Select"/>
+        where resource_id = #{resourceId}
+        order by id
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into t_rbac_perm_resource (resource_id, perm_id)
+        values (#{resourceId}, #{permId})
+    </insert>
+
+    <update id="update">
+        update t_rbac_perm_resource
+        <set>
+            <if test="resourceId!=null">resource_id = #{resourceId},</if>
+            <if test="permId!=null">perm_id = #{permId},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from t_rbac_perm_resource
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

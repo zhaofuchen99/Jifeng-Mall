@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.situ.jifeng.cart.mapper.CartItemMapper">
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Select">
+        select id,
+               member_id,
+               good_id,
+               qty
+        from cart
+    </sql>
+
+    <!-- 查询所有购物车条目 -->
+    <select id="findAll" resultType="CartItemEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="memberId != null">
+                and member_id = #{memberId}
+            </if>
+            <if test="goodId != null">
+                and good_id = #{goodId}
+            </if>
+            <if test="qty != null">
+                and qty = #{qty}
+            </if>
+        </where>
+        order by id
+    </select>
+
+    <select id="findById" resultType="CartItemEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+
+    <select id="findByMemberId" resultType="CartItemEntity">
+        <include refid="Base_Select"/>
+        where member_id = #{memberId}
+        order by id
+    </select>
+
+    <!-- 依据会员编号 + 商品编号查询购物车记录（唯一键 uk_cart_member_good） -->
+    <select id="findByMemberIdAndGoodId" resultType="CartItemEntity">
+        <include refid="Base_Select"/>
+        where member_id = #{memberId}
+        and good_id = #{goodId}
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into cart (member_id, good_id, qty)
+        values (#{memberId}, #{goodId}, #{qty})
+    </insert>
+
+    <update id="update">
+        update cart
+        <set>
+            <if test="memberId!=null">member_id = #{memberId},</if>
+            <if test="goodId!=null">good_id = #{goodId},</if>
+            <if test="qty!=null">qty = #{qty},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from cart
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 下单后批量清空购物车条目（按购物车主键删除） -->
+    <delete id="clearByIds">
+        delete from cart
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 下单后按商品清空某会员的购物车条目 -->
+    <delete id="removeByGoodIds">
+        delete from cart
+        where member_id = #{memberId}
+        and good_id in
+        <foreach collection="goodIds" item="goodId" separator="," open="(" close=")">
+            #{goodId}
+        </foreach>
+    </delete>
+
+</mapper>

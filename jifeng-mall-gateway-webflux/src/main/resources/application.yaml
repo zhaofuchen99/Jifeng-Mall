@@ -1,0 +1,137 @@
+spring:
+  application:
+    name: jifeng-mall-gateway-webflux
+
+  cloud:
+    sentinel:
+      enabled: on
+      eager: on
+      scg:
+        fallback:
+          mode: "response"
+          response-status: 429
+          response-body: "{\"success\":false,\"code\":429,\"msg\":\"网关：服务不可用\"}"
+          content-type: "application/json;charset=utf-8"
+
+      datasource:
+        ds1:
+          nacos:
+            server-addr: 127.0.0.1:8848
+            username: nacos
+            password: 123456
+            namespace: jifeng-mall
+            group-id: jifeng-mall
+            data-id: gateway-sentinel-flow-rules.json
+            data-type: json
+            rule-type: gw-flow
+
+    nacos:
+      discovery:
+        #nacos服务器的地址
+        server-addr: 127.0.0.1:8848
+        username: nacos
+        password: 123456
+        namespace: jifeng-mall
+        group: jifeng-mall
+        # 不写死 ip，由 Spring Cloud Alibaba 自动探测本机网卡地址，避免换机器后注册错误
+        port: 8888
+
+    # 网关配置
+    gateway:
+      server:
+        webflux:
+          routes:
+            #品牌微服务，id属性用于指定路由规则名称，可自定义
+            - id: brand-api
+              #转发的目标地址和端口，其中lb表示loadBalancer协议（负载均衡），后面是nacos上的微服务名称
+              uri: lb://jifeng-mall-brand-api
+              #可定义多组路由断言，满足指定条件则进行转发。断言类型包括Path、Before、After、Between、Cookie、Header、Host、Method、Query、RemoteAttr等多种
+              #Path较常用，表示满足请求路径模式则转发，基于Ant模式匹配。注意："/**"是一个整体，属于Ant风格通配符，表示匹配何意层级的路径，包括零次
+              #此处示例支持两种类型的地址匹配模式
+              predicates:
+                - Path=/api/brands/**, /api/v1/brands/**
+              #网关支持多种过滤器。RewritePath表示重写请求路径，支持正则表达式。
+              filters:
+                #1.正则表达式中的第1个问号，即"?:"，表示非捕获分组，即其外部的小括号并不进行分组捕获。
+                #2.正则表达式中的第2个问号，即"?<segment>"表示自定义捕获分组的名字（可自定义），若不自定义名称，则默认为$1、$2、$3...，若自定义，则名称为${xxx}
+                #3.正则表达式中的第3个问号，即"(xxx)?"，表示前面的分组匹配0次或1次
+                #4.$后的反斜杠表示转义，如果不加，则会被理解为获取当前配置文件中的变量值，加上转义字符则打断识别为变量的这个过程。其实左大括号，在正常情况下不加转义字符就能识别，加左花括号只是为了打断将其识别为变量而已
+                - RewritePath=/api/v1/brands(?:(?<group1>/.*))?, /api/brands$\{group1}
+
+            # 分类微服务
+            - id: category-api
+              uri: lb://jifeng-mall-category-api
+              predicates:
+                - Path=/api/categories/**
+
+            # 商品微服务
+            - id: good-api
+              uri: lb://jifeng-mall-good-api
+              predicates:
+                - Path=/api/goods/**
+
+            # 会员微服务
+            - id: member-api
+              uri: lb://jifeng-mall-member-api
+              predicates:
+                - Path=/api/members/**
+
+            # 会员收获地址微服务
+            - id: member-address-api
+              uri: lb://jifeng-mall-member-address-api
+              predicates:
+                - Path=/api/member-addresses/**
+
+            # 中国地区微服务
+            - id: region-api
+              uri: lb://jifeng-mall-region-api
+              predicates:
+                - Path=/api/regions/**
+
+            # 购物车微服务
+            - id: cart-api
+              uri: lb://jifeng-mall-cart-api
+              predicates:
+                - Path=/api/carts/**
+
+            # 订单微服务
+            - id: order-api
+              uri: lb://jifeng-mall-order-api
+              predicates:
+                - Path=/api/orders/**,/api/order-items/**
+
+            # 后台用户微服务
+            - id: user-api
+              uri: lb://jifeng-mall-user-api
+              predicates:
+                - Path=/api/users/**
+
+            # rbac微服务
+            - id: rbac-api
+              uri: lb://jifeng-mall-rbac-api
+              predicates:
+                - Path=/api/groups/**,/api/roles/**,/api/perms/**,/api/resources/**,/api/menus/**,/api/group-roles/**,/api/perm-resources/**,/api/role-perms/**,/api/user-groups/**
+
+            # 文件上传微服务
+            - id: upload-api
+              uri: lb://jifeng-mall-upload-api
+              predicates:
+                - Path=/upload/**
+
+            # 秒杀微服务
+            - id: seckill-api
+              uri: lb://jifeng-mall-seckill-api
+              predicates:
+                - Path=/api/seckills/**,/api/seckill-goods/**
+
+          #动态路由配置：相当于断言Path=<微服务名称>/**，过滤器则为StripPrefix=1(去掉第1级前缀，即去掉微服务名称)
+          #示例：请求网关地址http://网关ip:8888/brand-api/api/brands，去掉第1级前缀，转发给真正的微服务地址lb://<微服务>/api/brands
+          discovery:
+            locator:
+              enabled: true
+              lowerCaseServiceId: true
+
+
+
+server:
+  port: 8888

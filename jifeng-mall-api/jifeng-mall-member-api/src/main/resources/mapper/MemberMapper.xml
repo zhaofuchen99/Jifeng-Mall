@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.situ.jifeng.member.mapper.MemberMapper">
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Select">
+        select id,
+               account,
+               password,
+               enabled,
+               name,
+               pinyin,
+               pinyin_untoned,
+               first_name,
+               last_name,
+               sex,
+               birthday,
+               height,
+               weight,
+               iq,
+               qq,
+               wechat,
+               phone,
+               email,
+               native_place_id,
+               card_id,
+               wedlock,
+               political_orientation,
+               address_id,
+               address_detail,
+               race,
+               religion,
+               nationality,
+               portrait,
+               description,
+               last_login_time,
+               last_login_ip,
+               extra_info,
+               version,
+               created_time,
+               created_by,
+               updated_time,
+               updated_by
+        from member
+    </sql>
+
+    <!-- 查询所有会员 -->
+    <select id="findAll" resultType="MemberEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="account!=null and account!=''">
+                <bind name="accountLike" value="'%'+account+'%'"/>
+                and account like #{accountLike}
+            </if>
+            <if test="name!=null and name!=''">
+                <bind name="nameLike" value="'%'+name+'%'"/>
+                and name like #{nameLike}
+            </if>
+            <if test="phone!=null and phone!=''">
+                <bind name="phoneLike" value="'%'+phone+'%'"/>
+                and phone like #{phoneLike}
+            </if>
+            <if test="email!=null and email!=''">
+                <bind name="emailLike" value="'%'+email+'%'"/>
+                and email like #{emailLike}
+            </if>
+            <if test="enabled != null">
+                and enabled = #{enabled}
+            </if>
+        </where>
+        order by id
+    </select>
+
+    <select id="findById" resultType="MemberEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+
+    <select id="findByAccount" resultType="MemberEntity">
+        <include refid="Base_Select"/>
+        where account = #{account}
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into member (account, password, enabled, name, pinyin, pinyin_untoned,
+                            first_name, last_name, sex, birthday, height, weight, iq,
+                            qq, wechat, phone, email, native_place_id, card_id,
+                            wedlock, political_orientation, address_id, address_detail,
+                            race, religion, nationality, portrait, description,
+                            last_login_time, last_login_ip, extra_info,
+                            created_time, updated_time, created_by, updated_by)
+        values (#{account}, #{password}, #{enabled}, #{name}, #{pinyin}, #{pinyinUntoned},
+                #{firstName}, #{lastName}, #{sex}, #{birthday}, #{height}, #{weight}, #{iq},
+                #{qq}, #{wechat}, #{phone}, #{email}, #{nativePlaceId}, #{cardId},
+                #{wedlock}, #{politicalOrientation}, #{addressId}, #{addressDetail},
+                #{race}, #{religion}, #{nationality}, #{portrait}, #{description},
+                #{lastLoginTime}, #{lastLoginIp}, #{extraInfo},
+                #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+
+    <update id="update">
+        update member
+        <set>
+            <if test="account!=null and account!=''">account = #{account},</if>
+            <if test="password!=null and password!=''">password = #{password},</if>
+            <if test="enabled!=null">enabled = #{enabled},</if>
+            <if test="name!=null and name!=''">name = #{name},</if>
+            <if test="pinyin!=null and pinyin!=''">pinyin = #{pinyin},</if>
+            <if test="pinyinUntoned!=null and pinyinUntoned!=''">pinyin_untoned = #{pinyinUntoned},</if>
+            <if test="firstName!=null and firstName!=''">first_name = #{firstName},</if>
+            <if test="lastName!=null and lastName!=''">last_name = #{lastName},</if>
+            <if test="sex!=null and sex!=''">sex = #{sex},</if>
+            <if test="birthday!=null">birthday = #{birthday},</if>
+            <if test="height!=null">height = #{height},</if>
+            <if test="weight!=null">weight = #{weight},</if>
+            <if test="iq!=null">iq = #{iq},</if>
+            <if test="qq!=null and qq!=''">qq = #{qq},</if>
+            <if test="wechat!=null and wechat!=''">wechat = #{wechat},</if>
+            <if test="phone!=null and phone!=''">phone = #{phone},</if>
+            <if test="email!=null and email!=''">email = #{email},</if>
+            <if test="nativePlaceId!=null">native_place_id = #{nativePlaceId},</if>
+            <if test="cardId!=null and cardId!=''">card_id = #{cardId},</if>
+            <if test="wedlock!=null and wedlock!=''">wedlock = #{wedlock},</if>
+            <if test="politicalOrientation!=null and politicalOrientation!=''">political_orientation = #{politicalOrientation},</if>
+            <if test="addressId!=null">address_id = #{addressId},</if>
+            <if test="addressDetail!=null and addressDetail!=''">address_detail = #{addressDetail},</if>
+            <if test="race!=null and race!=''">race = #{race},</if>
+            <if test="religion!=null and religion!=''">religion = #{religion},</if>
+            <if test="nationality!=null and nationality!=''">nationality = #{nationality},</if>
+            <if test="portrait!=null and portrait!=''">portrait = #{portrait},</if>
+            <if test="description!=null and description!=''">description = #{description},</if>
+            <if test="lastLoginTime!=null">last_login_time = #{lastLoginTime},</if>
+            <if test="lastLoginIp!=null and lastLoginIp!=''">last_login_ip = #{lastLoginIp},</if>
+            <if test="extraInfo!=null and extraInfo!=''">extra_info = #{extraInfo},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null and updatedBy!=''">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from member
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

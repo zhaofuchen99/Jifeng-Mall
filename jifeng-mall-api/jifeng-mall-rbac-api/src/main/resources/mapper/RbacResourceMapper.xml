@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.situ.jifeng.rbac.mapper.RbacResourceMapper">
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Select">
+        select id,
+               name,
+               type,
+               value,
+               description,
+               created_time,
+               created_by,
+               updated_time,
+               updated_by
+        from t_rbac_resource
+    </sql>
+
+    <!-- 查询所有资源 -->
+    <select id="findAll" resultType="RbacResourceEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="name!=null and name!=''">
+                <bind name="nameLike" value="'%'+name+'%'"/>
+                and name like #{nameLike}
+            </if>
+            <if test="type!=null and type!=''">
+                and type = #{type}
+            </if>
+            <if test="value!=null and value!=''">
+                <bind name="valueLike" value="'%'+value+'%'"/>
+                and value like #{valueLike}
+            </if>
+            <if test="description!=null and description!=''">
+                <bind name="descriptionLike" value="'%'+description+'%'"/>
+                and description like #{descriptionLike}
+            </if>
+        </where>
+        order by id
+    </select>
+
+    <select id="findById" resultType="RbacResourceEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into t_rbac_resource (name, type, value, description,
+                                     created_time, updated_time, created_by, updated_by)
+        values (#{name}, #{type}, #{value}, #{description},
+                #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+
+    <update id="update">
+        update t_rbac_resource
+        <set>
+            <if test="name!=null and name!=''">name = #{name},</if>
+            <if test="type!=null and type!=''">type = #{type},</if>
+            <if test="value!=null and value!=''">value = #{value},</if>
+            <if test="description!=null and description!=''">description = #{description},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null and updatedBy!=''">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from t_rbac_resource
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 权限判定：用户 → 用户组 → 角色 → 权限 → 资源(type=接口)，返回资源 value -->
+    <select id="findInterfacePathsByUserId" resultType="java.lang.String">
+        select distinct r.`value`
+        from `user` u
+                 join t_rbac_user_group ug on ug.user_id = u.id
+                 join t_rbac_group g on g.id = ug.group_id and g.enabled = 1
+                 join t_rbac_group_role gr on gr.group_id = g.id
+                 join t_rbac_role rl on rl.id = gr.role_id and rl.enabled = 1
+                 join t_rbac_role_perm rp on rp.role_id = rl.id
+                 join t_rbac_perm p on p.id = rp.perm_id and p.enabled = 1
+                 join t_rbac_perm_resource pr on pr.perm_id = p.id
+                 join t_rbac_resource r on r.id = pr.resource_id
+        where u.id = #{userId}
+          and u.enabled = 1
+          and u.locked = 0
+          and r.type = '接口'
+    </select>
+
+</mapper>

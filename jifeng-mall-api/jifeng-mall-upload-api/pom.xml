@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.situ</groupId>
+        <artifactId>jifeng-mall-api</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>jifeng-mall-upload-api</artifactId>
+
+    <name>jifeng-mall-upload-api</name>
+    <description>文件上传微服务</description>
+
+    <properties>
+        <java.version>25</java.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.situ</groupId>
+            <artifactId>jifeng-mall-spi</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--nacos远程配置：本服务 application.yaml 通过 spring.config.import 引入公共配置，缺此依赖会启动失败-->
+        <!-- Source: https://mvnrepository.com/artifact/com.alibaba.cloud/spring-cloud-starter-alibaba-nacos-config -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
+
+        <!--redis-->
+        <!-- Source: https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-data-redis -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <version>4.0.7</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!--糊涂工具类-->
+        <!-- Source: https://mvnrepository.com/artifact/cn.hutool/hutool-extra -->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-extra</artifactId>
+            <version>5.8.47</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+</project>
