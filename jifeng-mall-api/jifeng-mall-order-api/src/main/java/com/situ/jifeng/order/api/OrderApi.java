@@ -76,15 +76,28 @@ public class OrderApi {
      */
     @PostMapping("/create")
     public JsonResp create(@RequestBody OrderCreateDTO dto,
+                           @RequestHeader(name = "X-User-Id", required = false) String userId,
                            @RequestHeader(name = "X-User-Name", required = false) String user,
                            @RequestHeader(name = "X-Audience", required = false) String audience) {
-        // 会员下单只能给自己下：忽略请求体里的 memberAccount，强制用令牌里的账号。
+        // 会员下单只能给自己下：忽略请求体里的 memberAccount/memberId，强制用令牌里的身份。
         // 否则会员可以传别人的账号，把订单挂到他人名下。
         if (JwtUtil.AUDIENCE_MEMBER.equals(audience)) {
             dto.setMemberAccount(user);
+            dto.setMemberId(parseId(userId));
         }
         OrderEntity order = orderService.create(dto);
         return JsonResp.success(order);
+    }
+
+    private Long parseId(String v) {
+        if (v == null || v.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.valueOf(v);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     /**

@@ -23,4 +23,11 @@ public class OrderCreateDTO {
     private String comment;
     /* 下单会员账号（由网关/登录上下文注入，也可前端携带） */
     private String memberAccount;
+    /*
+     * 下单会员主键。由 OrderApi 从网关注入的 X-User-Id 填入，**不接受前端携带**。
+     * 用途是校验购物车条目的归属：CartItemEntity 里存的是 memberId（Long），
+     * 而订单存的是 memberAccount（String），两边对不上就没法比对。
+     * 为 null 表示非会员请求（服务间调用/后台），此时跳过购物车归属校验。
+     */
+    private Long memberId;
 }

@@ -144,6 +144,12 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException(400, "会员账号不能为空");
         }
         MemberAddressEntity addr = fetchAddress(dto.getAddrId());
+        // 收货地址必须是下单人自己的。原先只按 addrId 取地址、不比对归属，
+        // 会员传一个别人的地址 id 就能把订单寄到他人地址上。
+        // 这里不放在 web 层校验：地址已经在服务里取到手了，没必要再查一次。
+        if (!dto.getMemberAccount().equals(addr.getMemberAccount())) {
+            throw new BusinessException(403, "收货地址不属于当前会员");
+        }
         BigDecimal totalPay = BigDecimal.ZERO;
         List<OrderCreateDTO> goodsQueue = new ArrayList<>();
 
@@ -154,6 +160,13 @@ public class OrderServiceImpl implements OrderService {
                 CartItemEntity item = resp.getData();
                 if (item == null) {
                     throw new BusinessException(400, "购物车条目不存在");
+                }
+                // 购物车条目必须是下单人自己的。购物车主键是自增的，
+                // 不校验的话会员传别人的 cartId 就能把他人购物车里的商品下成自己的订单，
+                // 顺带还会把对方的购物车条目清掉。
+                // dto.memberId 由 OrderApi 从网关注入的 X-User-Id 填入，前端无法伪造。
+                if (dto.getMemberId() != null && !dto.getMemberId().equals(item.getMemberId())) {
+                    throw new BusinessException(403, "购物车条目不属于当前会员");
                 }
                 OrderCreateDTO placeholder = new OrderCreateDTO();
                 placeholder.setGoodId(item.getGoodId());
