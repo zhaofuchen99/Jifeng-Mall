@@ -95,6 +95,18 @@ DELETE FROM banner WHERE title LIKE 'BANNER\_TEST%';
 DELETE FROM t_china_region WHERE name LIKE 'REG\_TEST%' OR id BETWEEN 999001 AND 999999;
 
 -- ---------------------------------------------------------------------
+-- 9. 区划自增计数器归位
+--    ⚠️ DELETE 不会把 AUTO_INCREMENT 带回去。region 的越权/维护测试会显式
+--       插入 999xxx 编码（见上面第 8 条），跑过之后计数器就被抬到 6 位数，
+--       而后台「编码留空自动生成」拿到的就会是这种不像样的值。
+--       种子最大编码是 440106（广东省/广州市/天河区/北京市 共 5 条），
+--       所以归位到 440107。
+--    幂等：InnoDB 下把 AUTO_INCREMENT 设成小于当前值的数会被忽略，
+--       但这里设的是「大于当前最大值」的合法目标值，可以重复执行。
+-- ---------------------------------------------------------------------
+ALTER TABLE t_china_region AUTO_INCREMENT = 440107;
+
+-- ---------------------------------------------------------------------
 -- 核对：以下每项都应等于期望值
 -- ---------------------------------------------------------------------
 SELECT '================ 重置后（核对） ================' AS step;
@@ -122,3 +134,7 @@ FROM `order` ORDER BY id;
 
 SELECT '--- 演示地址（期望 id=1 张三 is_default=1）---' AS step;
 SELECT id, member_account, receiver, is_default FROM member_address ORDER BY id;
+
+SELECT '--- 区划自增计数器（期望 440107）---' AS step;
+SELECT AUTO_INCREMENT FROM information_schema.TABLES
+ WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 't_china_region';
