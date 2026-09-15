@@ -46,6 +46,11 @@ public class OrderServiceImpl implements OrderService {
     static final String STATUS_CONFIRMED = "已确认";
     static final String STATUS_CANCELED = "已取消";
 
+    /** 退款状态（需求 4.4 / 详细设计 3.5.2）：无退款 → 退款中 → 已退款 */
+    static final String REFUND_NONE = "无退款";
+    static final String REFUND_APPLYING = "退款中";
+    static final String REFUND_DONE = "已退款";
+
     private OrderMapper orderMapper;
     private OrderItemMapper orderItemMapper;
     private GoodFeignService goodFeignService;
@@ -250,20 +255,7 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(STATUS_CANCELED);
         order.setUpdatedTime(LocalDateTime.now());
         orderMapper.update(order);
-        // 秒杀订单与普通订单的库存来源不同，回补路径互斥：
-        //  - 秒杀订单：下单时未扣减普通库存 good.qty，只回补秒杀库存（Redis + seckill_good）
-        //  - 普通订单：仅回补普通商品库存 good.qty
-        if (order.getSeckillNo() != null && !order.getSeckillNo().isBlank()) {
-            try {
-                RestockParam param = new RestockParam();
-                param.setSeckillNo(order.getSeckillNo());
-                seckillFeignService.restock(param);
-            } catch (Exception e) {
-                log.warn("回补秒杀库存失败：orderId={}, seckillNo={}", orderId, order.getSeckillNo(), e);
-            }
-        } else {
-            refundStock(orderId);
-        }
+        restockForOrder(order);
         return true;
     }
 
@@ -272,6 +264,11 @@ public class OrderServiceImpl implements OrderService {
     public boolean confirm(Long orderId) {
         OrderEntity order = requireOrder(orderId);
         if (!STATUS_SHIPPED.equals(order.getStatus())) {
+            return false;
+        }
+        // 退款在途的订单不该再被确认收货：确认后订单是终态「已确认」，
+        // 退款一旦确认又要翻成「已取消」，状态机会自相矛盾。
+        if (isRefundInvolved(order)) {
             return false;
         }
         order.setStatus(STATUS_CONFIRMED);
@@ -286,6 +283,11 @@ public class OrderServiceImpl implements OrderService {
     public boolean ship(Long orderId) {
         OrderEntity order = requireOrder(orderId);
         if (!STATUS_PAID.equals(order.getStatus())) {
+            return false;
+        }
+        // 退款在途的订单不能再发货。发起退款后订单状态仍是「已支付」，
+        // 不加这道判断，正在退款的订单会被发出去。
+        if (isRefundInvolved(order)) {
             return false;
         }
         order.setStatus(STATUS_SHIPPED);
@@ -318,6 +320,64 @@ public class OrderServiceImpl implements OrderService {
         return true;
     }
 
+    /**
+     * 发起退款（模拟）：无退款 → 退款中。对应真实场景的「后台提交退款申请，等渠道处理」。
+     * 与模拟支付一样分两步（发起 / 确认），退款状态才有「退款中」这个中间态可观察。
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean refund(Long orderId, String operator) {
+        OrderEntity order = requireOrder(orderId);
+        // 可退款的状态：已支付（未发货）与待收货（已发货）。
+        // 需求 6.6 只写了「已支付订单发起退款」，这里把待收货一并放开是刻意放宽的：
+        // 货已发出、款已收，会员要退，后台仍得能处理。状态字典里没有「已退款」这个
+        // 订单状态，两种情形退完都落到「已取消」（终态），是不是退款单由 refund_status 区分。
+        if (!STATUS_PAID.equals(order.getStatus()) && !STATUS_SHIPPED.equals(order.getStatus())) {
+            return false;
+        }
+        // 幂等：只有「未退款」才能发起，重复点退款不会把已退款/退款中的订单再退一次
+        if (!isRefundable(order)) {
+            return false;
+        }
+        order.setRefundStatus(REFUND_APPLYING);
+        order.setUpdatedTime(LocalDateTime.now());
+        order.setUpdatedBy(operator);
+        orderMapper.update(order);
+        return true;
+    }
+
+    /**
+     * 确认退款（模拟）：退款中 → 已退款，订单转已取消并回补库存。
+     * 对应真实场景的「渠道退款成功回调」；模拟实现里由后台点确认触发。
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean refundConfirm(Long orderId, String operator) {
+        OrderEntity order = requireOrder(orderId);
+        if (!REFUND_APPLYING.equals(order.getRefundStatus())) {
+            return false;
+        }
+        order.setRefundStatus(REFUND_DONE);
+        order.setStatus(STATUS_CANCELED);
+        order.setUpdatedTime(LocalDateTime.now());
+        order.setUpdatedBy(operator);
+        orderMapper.update(order);
+        // 与取消订单同一套回补逻辑：退款成功等同于交易撤销，占用的库存要还回去
+        restockForOrder(order);
+        return true;
+    }
+
+    /** 尚未发起过退款（refund_status 为 NULL 的历史数据也视为未退款） */
+    private boolean isRefundable(OrderEntity order) {
+        return order.getRefundStatus() == null || REFUND_NONE.equals(order.getRefundStatus());
+    }
+
+    /** 退款已发起（退款中）或已完成（已退款）——这类订单不再参与履约（发货 / 确认收货） */
+    private boolean isRefundInvolved(OrderEntity order) {
+        return REFUND_APPLYING.equals(order.getRefundStatus())
+                || REFUND_DONE.equals(order.getRefundStatus());
+    }
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public OrderEntity createSeckillOrder(Long goodId, Integer qty, BigDecimal seckillPrice,
@@ -340,7 +400,7 @@ public class OrderServiceImpl implements OrderService {
         order.setTotalPay(seckillPrice.multiply(BigDecimal.valueOf(qty)));
         order.setStatus(STATUS_PENDING_PAY);
         order.setCheckoutTime(LocalDateTime.now());
-        order.setRefundStatus("无退款");
+        order.setRefundStatus(REFUND_NONE);
         // order.is_del 列为 NOT NULL，且 insert 语句显式带该字段；
         // 不设值会传 NULL，触发 "Column 'is_del' cannot be null"（普通下单 buildOrder 里有设）
         order.setIsDel(false);
@@ -382,7 +442,7 @@ public class OrderServiceImpl implements OrderService {
         order.setMemberAccount(dto.getMemberAccount());
         order.setStatus(STATUS_PENDING_PAY);
         order.setCheckoutTime(LocalDateTime.now());
-        order.setRefundStatus("无退款");
+        order.setRefundStatus(REFUND_NONE);
         order.setReceiverAddrId(addr.getAddrId());
         order.setReceiverName(addr.getReceiver());
         order.setReceiverPhone(addr.getPhone());
@@ -409,6 +469,31 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException(404, "订单不存在");
         }
         return order;
+    }
+
+    /**
+     * 归还订单占用的库存。取消订单与退款成功走的是同一条路径。
+     *
+     * <p>秒杀订单与普通订单的库存来源不同，两条路径互斥：</p>
+     * <ul>
+     *   <li><b>秒杀订单</b>：下单时未扣减普通库存 {@code good.qty}，只回补秒杀库存
+     *       （Redis {@code seckill:stock:*} + {@code seckill_good.stock/sold}），
+     *       并释放该会员的抢购名额</li>
+     *   <li><b>普通订单</b>：按明细回补 {@code good.qty}</li>
+     * </ul>
+     */
+    private void restockForOrder(OrderEntity order) {
+        if (order.getSeckillNo() != null && !order.getSeckillNo().isBlank()) {
+            try {
+                RestockParam param = new RestockParam();
+                param.setSeckillNo(order.getSeckillNo());
+                seckillFeignService.restock(param);
+            } catch (Exception e) {
+                log.warn("回补秒杀库存失败：orderId={}, seckillNo={}", order.getId(), order.getSeckillNo(), e);
+            }
+        } else {
+            refundStock(order.getId());
+        }
     }
 
     private void refundStock(Long orderId) {

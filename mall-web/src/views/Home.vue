@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { getBanners } from '@/api/banner'
 import { getCategoryTree } from '@/api/category'
 import { getGoods } from '@/api/good'
 import { getActiveSeckills } from '@/api/seckill'
@@ -17,32 +18,64 @@ const seckills = ref([])
 const loading = ref(true)
 
 /**
- * 轮播。演示项目没有运维配图，用 CSS 渐变代替 <img>——
- * 免得指向不存在的图片文件、整块区域变成破图。
+ * 轮播。图片与跳转链接都由后台配置（需求 5.3「轮播 Banner（可配置图片与跳转链接）」），
+ * 后台「商品管理 - 轮播管理」维护，接口见 api/banner.js。
+ *
+ * 这里的 FALLBACK 是兜底：后端没配轮播、或接口挂了的时候用。
+ * 它同时也是图片加载失败时的垫底背景（img 的 onerror 会把它藏起来，
+ * 底下的渐变就露出来了，不会出现破图）。
  */
-const banners = [
+const FALLBACK_BANNERS = [
   {
+    id: 'f1',
     title: '新品首发',
-    subtitle: 'iPhone 16 Pro 现已开售',
-    cta: '立即选购',
-    to: { name: 'goods', query: { categoryId: 1 } },
+    linkUrl: '/goods',
     bg: 'linear-gradient(120deg, #2b2f36 0%, #4a3a3d 60%, #6d2029 100%)'
   },
   {
+    id: 'f2',
     title: '限时秒杀',
-    subtitle: '每周三秒杀 · 低至 6 折',
-    cta: '进入会场',
-    to: { name: 'seckill' },
+    linkUrl: '/seckill',
     bg: 'linear-gradient(120deg, #6d2029 0%, #b82e38 60%, #ff8a3c 100%)'
   },
   {
+    id: 'f3',
     title: '品牌直营',
-    subtitle: 'Apple / Huawei 官方好货',
-    cta: '去看看',
-    to: { name: 'goods' },
+    linkUrl: '/goods',
     bg: 'linear-gradient(120deg, #1f2a44 0%, #2f4b7c 60%, #3d6fb5 100%)'
   }
 ]
+
+const banners = ref(FALLBACK_BANNERS)
+
+/** 后台配了就用后端的，一条都没有（或请求失败）就用兜底 */
+async function loadBanners() {
+  try {
+    const page = await getBanners()
+    const list = page?.list || []
+    if (list.length > 0) {
+      banners.value = list
+    }
+  } catch (e) {
+    // 首页不该因为轮播挂了就报错，静默用兜底
+  }
+}
+
+/** 点击轮播：站内路由直接跳，外链新开页 */
+function goBanner(b) {
+  const url = b.linkUrl
+  if (!url) return
+  if (/^https?:\/\//i.test(url)) {
+    window.open(url, '_blank', 'noopener')
+  } else {
+    router.push(url)
+  }
+}
+
+/** 图片不存在时藏掉，露出底下的渐变兜底，避免破图 */
+function onBannerImgError(e) {
+  e.target.style.display = 'none'
+}
 
 /** 首页只露出主活动：第一个「进行中」的，没有就退而取第一个 */
 const mainSeckill = computed(() => {
@@ -68,11 +101,12 @@ function toCategory(id) {
 
 onMounted(async () => {
   try {
-    // 三个请求互不依赖，并发拿
+    // 四个请求互不依赖，并发拿（轮播内部自己 try/catch，不会拖垮整块）
     const [tree, hot, active] = await Promise.all([
       getCategoryTree(),
       getGoods({ isHot: true, isTakeDown: false, isDel: false, pageNo: 1, pageSize: 8, full: true }),
-      getActiveSeckills()
+      getActiveSeckills(),
+      loadBanners()
     ])
     categories.value = tree || []
     hotGoods.value = hot?.list || []
@@ -100,12 +134,23 @@ onMounted(async () => {
         </aside>
 
         <el-carousel class="hero__banner" height="360px" :interval="5000" arrow="hover">
-          <el-carousel-item v-for="b in banners" :key="b.title">
-            <div class="banner" :style="{ background: b.bg }">
+          <el-carousel-item v-for="(b, i) in banners" :key="b.id ?? i">
+            <div
+              class="banner"
+              :class="{ 'banner--clickable': !!b.linkUrl }"
+              :style="{ background: b.bg || FALLBACK_BANNERS[i % FALLBACK_BANNERS.length].bg }"
+              @click="goBanner(b)"
+            >
+              <img
+                v-if="b.imageUrl"
+                class="banner__img"
+                :src="b.imageUrl"
+                :alt="b.title"
+                @error="onBannerImgError"
+              />
               <div class="banner__text">
                 <h2>{{ b.title }}</h2>
-                <p>{{ b.subtitle }}</p>
-                <el-button type="primary" round @click="router.push(b.to)">{{ b.cta }}</el-button>
+                <el-button v-if="b.linkUrl" type="primary" round>立即查看</el-button>
               </div>
             </div>
           </el-carousel-item>
@@ -216,10 +261,36 @@ onMounted(async () => {
 }
 
 .banner {
+  position: relative;
   height: 100%;
   display: flex;
   align-items: center;
   padding: 0 56px;
+  overflow: hidden;
+}
+
+/* 后台配的轮播图铺满整块。这里用 cover 是对的——轮播是背景板，
+   裁切不影响信息；商品图才必须 contain（见 商品图来源.md 的约定）。
+   img 加载失败时 onerror 会把它藏掉，露出底下的渐变，不会出现破图。 */
+.banner__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 文字压在图上，加个左侧渐变压一层，保证任何配图下都读得清 */
+.banner__text {
+  position: relative;
+  z-index: 1;
+  padding: 8px 24px 8px 0;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.42) 0%, rgba(0, 0, 0, 0) 100%);
+  border-radius: 8px;
+}
+
+.banner--clickable {
+  cursor: pointer;
 }
 
 .banner__text h2 {
@@ -227,6 +298,7 @@ onMounted(async () => {
   color: #fff;
   letter-spacing: 3px;
   margin-bottom: 12px;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }
 
 .banner__text p {

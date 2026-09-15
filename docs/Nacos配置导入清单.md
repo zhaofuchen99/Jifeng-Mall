@@ -9,7 +9,7 @@
 
 | 项 | 值 |
 | --- | --- |
-| Nacos 地址 | `127.0.0.1:8848`，账号 `nacos / 123456` |
+| Nacos 地址 | `127.0.0.1:8848`，账号 `nacos`，密码填你自己设的 |
 | **namespace** | `jifeng-mall`（12 个 api 服务 + 网关统一使用） |
 | **group** | `jifeng-mall` |
 | 配置格式 | `jifeng-mall-common.yaml` 为 **YAML**；`gateway-sentinel-flow-rules.json` 为 **JSON** |
@@ -31,14 +31,20 @@ group `jifeng-mall` 无需预建，发布配置时填写即可。
 
 | dataId | 格式 | 内容来源 |
 | --- | --- | --- |
-| `jifeng-mall-common.yaml` | YAML | 仓库 `jifeng-mall-api/docs/远程配置/jifeng-mall-common.yaml` |
+| `jifeng-mall-common.yaml` | YAML | 仓库 `jifeng-mall-api/docs/远程配置/` 下的 common 配置 |
 | `gateway-sentinel-flow-rules.json` | JSON | 仓库 `jifeng-mall-api/docs/远程配置/gateway-sentinel-flow-rules.json` |
 
 `jifeng-mall-common.yaml` 是**公共配置单一来源**，包含：数据源、MyBatis、PageHelper、Redis、RabbitMQ。
 各 api 服务的 `application.yaml` 通过 `spring.config.import: nacos:jifeng-mall-common.yaml` 引入，**只保留服务名与端口**。
 
-> 若本机 Redis 未设密码：把 `jifeng-mall-common.yaml` 里 `spring.data.redis.password` 删掉或留空。
-> 当前统一按项目约定填 `123456`（原 brand/category/region 用 123456，seckill/upload 未设密码，属不一致，已统一）。
+> ⚠️ **该配置有两个版本，别拿错**：
+> - `jifeng-mall-common.yaml` —— **模板**，密码全是 `<你的XXX密码>` 占位符，提交进仓库用；
+> - `jifeng-mall-common.local.yaml` —— **本机真实值**，已被 `.gitignore` 忽略不会提交。
+>
+> **发布到 Nacos 请用 `.local.yaml` 那一份**；如果你拿的是模板，把它拷成 `.local.yaml`、填上自己的密码再发布。
+> 直接发布模板会连不上 MySQL（认证失败，报错很直白，不会静默出错）。
+
+> 若本机 Redis 未设密码：把 `spring.data.redis.password` 删掉或留空（当前就是留空）。
 
 ---
 
@@ -47,8 +53,14 @@ group `jifeng-mall` 无需预建，发布配置时填写即可。
 ### 3.1 MySQL
 
 - 建库：`shoplook2026`（utf8mb4 / InnoDB）
-- 导入：`docs/sql/jifeng-mall-init.sql`（22 张表 + 索引 + 种子数据）
-- 账号需与 common 配置一致：当前样例为 `root / 09010402`（改了请同步改 Nacos 里的 common 配置）
+- 导入：`docs/sql/jifeng-mall-init.sql`（23 张表 + 索引 + 种子数据）
+- 账号密码填你自己的，必须与 Nacos 里 common 配置的 `spring.datasource` 一致。
+  建议**不要**用 root 跑应用，建一个只授权本库的专用账号：
+  ```sql
+  CREATE USER 'jifeng'@'localhost' IDENTIFIED BY '你的密码';
+  GRANT ALL PRIVILEGES ON `shoplook2026`.* TO 'jifeng'@'localhost';
+  ```
+  这样即使配置泄露，丢的也只是这一个库，不是整个 MySQL。
 
 种子账号（密码均为 `123456`，BCrypt 存储）：
 
@@ -60,12 +72,14 @@ group `jifeng-mall` 无需预建，发布配置时填写即可。
 
 ### 3.2 Redis
 
-- 地址 `127.0.0.1:6379`，密码见 §2.2 说明（默认期望 `123456`）
-- 用于：秒杀库存 `seckill:stock:*`、限购 `seckill:user:*`、订单映射 `seckill:order:*`
+- 地址 `127.0.0.1:6379`，密码见 §2.2 说明（当前未设密码，配置里留空）
+- 用于：秒杀库存 `seckill:stock:*`、限购 `seckill:user:*`、订单映射 `seckill:order:*`、
+  登录失败计数 `login:fail:*`
 
 ### 3.3 RabbitMQ
 
-- 地址 `127.0.0.1:5672`，账号 `guest / guest`
+- 地址 `127.0.0.1:5672`，账号 `guest`，密码填你自己设的（RabbitMQ 默认 `guest`，
+  且默认只允许 localhost 登录）
 - 建议开启 Management 插件（控制台 15672）
 - 用于：订单超时关单（TTL + 死信）、秒杀异步下单
 

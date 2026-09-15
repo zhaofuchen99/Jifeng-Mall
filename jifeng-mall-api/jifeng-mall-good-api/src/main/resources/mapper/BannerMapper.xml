@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.situ.jifeng.good.mapper.BannerMapper">
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Select">
+        select id,
+               title,
+               image_url,
+               link_url,
+               sort_no,
+               enabled,
+               description,
+               created_time,
+               created_by,
+               updated_time,
+               updated_by
+        from banner
+    </sql>
+
+    <!-- 查询轮播。前台首页传 enabled=true，即「启用中的」，按排序号给出 -->
+    <select id="findAll" resultType="BannerEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="title!=null and title!=''">
+                <bind name="titleLike" value="'%'+title+'%'"/>
+                and title like #{titleLike}
+            </if>
+            <if test="enabled != null">
+                and enabled = #{enabled}
+            </if>
+        </where>
+        order by sort_no, id
+    </select>
+
+    <select id="findById" resultType="BannerEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into banner (title, image_url, link_url, sort_no, enabled, description,
+                            created_time, updated_time, created_by, updated_by)
+        values (#{title}, #{imageUrl}, #{linkUrl}, #{sortNo}, #{enabled}, #{description},
+                #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+
+    <update id="update">
+        update banner
+        <set>
+            <if test="title!=null and title!=''">title = #{title},</if>
+            <if test="imageUrl!=null">image_url = #{imageUrl},</if>
+            <if test="linkUrl!=null">link_url = #{linkUrl},</if>
+            <if test="sortNo!=null">sort_no = #{sortNo},</if>
+            <if test="enabled!=null">enabled = #{enabled},</if>
+            <if test="description!=null">description = #{description},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from banner
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

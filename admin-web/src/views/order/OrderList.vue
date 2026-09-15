@@ -3,13 +3,18 @@ import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import orderApi from '@/api/order'
 import { useCrud } from '@/composables/useCrud'
-import { ORDER_STATUS, ORDER_STATUS_TAG } from '@/utils/dict'
+import { ORDER_STATUS, ORDER_STATUS_TAG, REFUND_STATUS_TAG, refundStatusText } from '@/utils/dict'
 import { datetime, money, onImgError } from '@/utils/format'
 
 /**
  * 订单管理。
  *
  * 订单不走 useCrud 的 remove：后台不提供删除，只能按状态发货 / 取消（取消会回补库存）。
+ *
+ * 退款是模拟的，分两步（与模拟支付的「发起 → 确认」对称）：
+ *   发起退款 已支付/待收货 + 无退款 → 退款中
+ *   确认退款 退款中                  → 已退款，订单转「已取消」并回补库存
+ * 所以这两个按钮互斥出现，同一时刻只会看到一个。
  *
  * ⚠️ OrderEntity 里<b>没有</b> items 字段（接口文档写「含明细」与实现不符），
  * 所以订单明细必须另调 orderApi.items(orderId)，不能指望详情里带出来。
@@ -63,6 +68,40 @@ async function onCancel(row) {
 
   await orderApi.cancel(row.id)
   ElMessage.success('订单已取消')
+  await load()
+}
+
+/** 该订单当前能否发起退款 */
+function canRefund(row) {
+  const notRefunded = !row.refundStatus || row.refundStatus === '无退款'
+  return notRefunded && (row.status === '已支付' || row.status === '待收货')
+}
+
+async function onRefund(row) {
+  const ok = await ElMessageBox.confirm(
+    `确定为订单「${row.orderNo}」发起退款吗？\n` +
+      `金额 ¥${money(row.totalPay)} 将模拟原路退回，订单进入「退款中」。`,
+    '发起退款',
+    { type: 'warning' }
+  ).catch(() => false)
+  if (!ok) return
+
+  await orderApi.refund(row.id)
+  ElMessage.success('已发起退款，等待确认')
+  await load()
+}
+
+async function onRefundConfirm(row) {
+  const ok = await ElMessageBox.confirm(
+    `确认订单「${row.orderNo}」退款到账吗？\n` +
+      `确认后订单转为「已取消」，占用的库存会回补。`,
+    '确认退款',
+    { type: 'warning' }
+  ).catch(() => false)
+  if (!ok) return
+
+  await orderApi.refundConfirm(row.id)
+  ElMessage.success('退款已完成')
   await load()
 }
 
@@ -139,6 +178,13 @@ onMounted(load)
             <el-tag :type="ORDER_STATUS_TAG[row.status]" effect="light">{{ row.status }}</el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="退款状态" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag :type="REFUND_STATUS_TAG[refundStatusText(row.refundStatus)]" effect="light">
+              {{ refundStatusText(row.refundStatus) }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="是否秒杀单" width="110" align="center">
           <template #default="{ row }">
             <!-- 秒杀单才有 seckillNo，普通单是 null -->
@@ -149,7 +195,7 @@ onMounted(load)
         <el-table-column label="下单时间" width="160">
           <template #default="{ row }">{{ datetime(row.checkoutTime) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="170" fixed="right" align="center">
+        <el-table-column label="操作" width="230" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="primary" @click="onDetail(row)">详情</el-button>
             <el-button v-if="row.status === '已支付'" link type="primary" @click="onShip(row)">
@@ -157,6 +203,17 @@ onMounted(load)
             </el-button>
             <el-button v-if="row.status === '待付款'" link type="danger" @click="onCancel(row)">
               取消
+            </el-button>
+            <el-button v-if="canRefund(row)" link type="danger" @click="onRefund(row)">
+              退款
+            </el-button>
+            <el-button
+              v-if="row.refundStatus === '退款中'"
+              link
+              type="danger"
+              @click="onRefundConfirm(row)"
+            >
+              确认退款
             </el-button>
           </template>
         </el-table-column>
@@ -194,7 +251,15 @@ onMounted(load)
         </el-descriptions-item>
         <el-descriptions-item label="秒杀编号">{{ detail.seckillNo || '—' }}</el-descriptions-item>
         <el-descriptions-item label="支付方式">{{ detail.payType || '—' }}</el-descriptions-item>
-        <el-descriptions-item label="退款状态">{{ detail.refundStatus || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="退款状态">
+          <el-tag
+            :type="REFUND_STATUS_TAG[refundStatusText(detail.refundStatus)]"
+            effect="light"
+            size="small"
+          >
+            {{ refundStatusText(detail.refundStatus) }}
+          </el-tag>
+        </el-descriptions-item>
         <el-descriptions-item label="支付宝交易号" :span="2">
           {{ detail.alipayTradeNo || '—' }}
         </el-descriptions-item>

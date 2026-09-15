@@ -128,12 +128,34 @@ public class OrderApi {
     @PutMapping("/{id}/ship")
     public JsonResp ship(@PathVariable Long id,
                          @RequestHeader(name = "X-Audience", required = false) String audience) {
-        // 发货是后台动作，会员即使拥有该订单也不该能发货。
-        // 网关已按路径拦了会员，这里再兜一道，避免只依赖网关一层。
-        if (audience != null && !JwtUtil.AUDIENCE_ADMIN.equals(audience)) {
-            throw new BusinessException(403, "无权限执行发货操作");
-        }
+        assertAdmin(audience, "发货");
         return orderService.ship(id) ? JsonResp.success(true) : JsonResp.fail(7005, "订单状态不允许该操作");
+    }
+
+    /**
+     * 发起退款（模拟，后台操作；仅已支付/待收货）→ refundStatus=退款中
+     */
+    @PutMapping("/{id}/refund")
+    public JsonResp refund(@PathVariable Long id,
+                           @RequestHeader(name = "X-User-Name", required = false) String user,
+                           @RequestHeader(name = "X-Audience", required = false) String audience) {
+        assertAdmin(audience, "退款");
+        return orderService.refund(id, user) ? JsonResp.success(true)
+                : JsonResp.fail(7005, "订单状态不允许该操作");
+    }
+
+    /**
+     * 确认退款（模拟，后台操作；仅退款中）→ refundStatus=已退款、订单转已取消、回补库存。
+     *
+     * <p>与模拟支付一样分发起 / 确认两步，退款状态才有「退款中」这个中间态可观察。</p>
+     */
+    @PutMapping("/{id}/refund/confirm")
+    public JsonResp refundConfirm(@PathVariable Long id,
+                                  @RequestHeader(name = "X-User-Name", required = false) String user,
+                                  @RequestHeader(name = "X-Audience", required = false) String audience) {
+        assertAdmin(audience, "退款");
+        return orderService.refundConfirm(id, user) ? JsonResp.success(true)
+                : JsonResp.fail(7005, "退款状态不允许该操作");
     }
 
     /**
@@ -258,6 +280,17 @@ public class OrderApi {
         }
         if (user == null || !user.equals(account)) {
             throw new BusinessException(403, "无权查看他人订单");
+        }
+    }
+
+    /**
+     * 后台专属动作（发货、退款）：会员即使拥有该订单也不该能做。
+     * 网关已按路径拦了会员，这里再兜一道，避免只依赖网关一层。
+     * 与 {@link #assertOwnership} 一致，放行"无 X-Audience 头"的服务间直连。
+     */
+    private void assertAdmin(String audience, String action) {
+        if (audience != null && !JwtUtil.AUDIENCE_ADMIN.equals(audience)) {
+            throw new BusinessException(403, "无权限执行" + action + "操作");
         }
     }
 }

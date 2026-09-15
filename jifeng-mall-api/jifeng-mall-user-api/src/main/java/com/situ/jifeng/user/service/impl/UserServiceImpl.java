@@ -3,6 +3,7 @@ package com.situ.jifeng.user.service.impl;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.situ.jifeng.common.JwtUtil;
+import com.situ.jifeng.common.LoginFailureGuard;
 import com.situ.jifeng.common.PaginateInfo;
 import com.situ.jifeng.common.PasswordUtil;
 import com.situ.jifeng.spi.model.LoginParam;
@@ -12,6 +13,7 @@ import com.situ.jifeng.spi.model.search.UserSearchBean;
 import com.situ.jifeng.spi.service.UserService;
 import com.situ.jifeng.user.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -26,10 +28,16 @@ public class UserServiceImpl implements UserService {
             Pattern.compile("^\\$2[aby]\\$\\d{2}\\$[./A-Za-z0-9]{53}$");
 
     private UserMapper userMapper;
+    private StringRedisTemplate stringRedisTemplate;
 
     @Autowired
     public void setUserMapper(UserMapper userMapper) {
         this.userMapper = userMapper;
+    }
+
+    @Autowired
+    public void setStringRedisTemplate(StringRedisTemplate stringRedisTemplate) {
+        this.stringRedisTemplate = stringRedisTemplate;
     }
 
     @Override
@@ -106,16 +114,23 @@ public class UserServiceImpl implements UserService {
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("用户名不能为空");
         }
+        // 防爆破第一道：处于锁定窗口内直接拒绝，连密码都不用校验（需求 6.2 / NFR-002）
+        LoginFailureGuard.assertNotLocked(stringRedisTemplate, JwtUtil.AUDIENCE_ADMIN, username);
+
         UserEntity user = userMapper.findByUsername(username);
         if (user == null) {
+            // 账号不存在也计数：只对存在的账号计数的话，试几次看有没有被锁就能枚举出哪些账号真实存在
+            LoginFailureGuard.recordFailure(stringRedisTemplate, JwtUtil.AUDIENCE_ADMIN, username);
             throw new IllegalArgumentException("用户名或密码错误");
         }
-        // 账号状态校验（启用 / 锁定 / 过期）
+        // 账号状态校验（启用 / 锁定 / 过期）。
+        // 这几种失败不计入防爆破——账号本来就被封着，猜密码也进不去，
+        // 计数只会让管理员更难判断到底是哪一种。
         if (!Boolean.TRUE.equals(user.getEnabled())) {
             throw new IllegalArgumentException("账号已被禁用");
         }
         if (Boolean.TRUE.equals(user.getLocked())) {
-            throw new IllegalArgumentException("账号已被锁定");
+            throw new IllegalArgumentException("账号已被锁定（管理员手工锁定，需后台解锁）");
         }
         if (user.getUserExpireTime() != null && user.getUserExpireTime().isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("账号已过期");
@@ -124,8 +139,11 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("凭证已过期，请修改密码");
         }
         if (!PasswordUtil.matches(param.getPassword(), user.getPassword())) {
+            LoginFailureGuard.recordFailure(stringRedisTemplate, JwtUtil.AUDIENCE_ADMIN, username);
             throw new IllegalArgumentException("用户名或密码错误");
         }
+        // 登录成功，清掉此前累计的失败次数
+        LoginFailureGuard.clear(stringRedisTemplate, JwtUtil.AUDIENCE_ADMIN, username);
 
         // 更新登录信息
         user.setLoginTimes(user.getLoginTimes() == null ? 1 : user.getLoginTimes() + 1);

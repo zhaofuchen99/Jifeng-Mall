@@ -95,6 +95,10 @@ public class RbacGatewayFilter implements GlobalFilter, Ordered {
      * <p>这些接口自身按 {@code X-User-Name} 限定本人数据。列得很细是故意的——
      * 订单只放开会员真正用得到的那几个，<b>不放开裸的 {@code /api/orders}</b>，
      * 因为那是后台的订单列表接口。</p>
+     *
+     * <p>同样<b>故意不放开</b>的还有发货与退款：{@code /api/orders/{id}/ship}、
+     * {@code /refund}、{@code /refund/confirm} 都是后台动作，走下面的 RBAC 判定
+     * （资源 {@code /api/orders/**}）。会员调这几个路径会在这里直接吃 403。</p>
      */
     private static final List<String> MEMBER_PATHS = List.of(
             "/api/carts/**",

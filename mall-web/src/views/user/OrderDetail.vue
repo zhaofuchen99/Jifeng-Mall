@@ -90,8 +90,27 @@ onMounted(load)
           <el-step v-for="n in timeline" :key="n.label" :title="n.label" :description="datetime(n.time)" />
         </el-steps>
 
+        <!-- 退款是后台发起的，会员这边只做展示 -->
         <el-alert
-          v-if="order.status === '已取消'"
+          v-if="order.refundStatus === '已退款'"
+          class="mb-16"
+          type="error"
+          show-icon
+          :closable="false"
+          title="该订单已退款"
+          description="款已模拟原路退回，订单转为已取消，占用的库存已回补。"
+        />
+        <el-alert
+          v-else-if="order.refundStatus === '退款中'"
+          class="mb-16"
+          type="warning"
+          show-icon
+          :closable="false"
+          title="退款处理中"
+          description="后台已受理退款，等待退款到账。"
+        />
+        <el-alert
+          v-else-if="order.status === '已取消'"
           class="mb-16"
           type="info"
           show-icon

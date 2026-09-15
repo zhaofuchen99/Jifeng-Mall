@@ -114,6 +114,15 @@ onMounted(load)
           <span class="text-muted">{{ datetime(o.checkoutTime) }}</span>
           <span class="text-muted">订单号：{{ o.orderNo }}</span>
           <el-tag v-if="o.seckillNo" type="danger" size="small" effect="plain">秒杀</el-tag>
+          <!-- 退款是后台发起的，会员这边只做展示：退款中 / 已退款 -->
+          <el-tag
+            v-if="o.refundStatus && o.refundStatus !== '无退款'"
+            :type="o.refundStatus === '已退款' ? 'danger' : 'warning'"
+            size="small"
+            effect="plain"
+          >
+            {{ o.refundStatus }}
+          </el-tag>
           <el-tag :type="orderStatusTag(o.status)" size="small">{{ o.status }}</el-tag>
         </div>
 

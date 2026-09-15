@@ -2,7 +2,7 @@
 -- 基于 Spring Cloud 的 B2C 微服务秒杀商城
 -- 数据库初始化脚本（依据详细设计说明书 V1.0.2 第 3 章）
 -- 数据库：shoplook2026   字符集：utf8mb4   引擎：InnoDB
--- 说明：22 张数据表 + 关键索引 + 演示种子数据
+-- 说明：23 张数据表 + 关键索引 + 演示种子数据（第 23 张 banner 为本期补充，见该节注释）
 -- =====================================================================
 
 SET NAMES utf8mb4;
@@ -483,6 +483,32 @@ CREATE TABLE `t_rbac_perm_resource` (
   UNIQUE KEY `uk_rbac_perm_resource` (`resource_id`,`perm_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COMMENT='权限-资源关联';
 
+-- ---------------------------------------------------------------------
+-- 23. banner 首页轮播（本期补充，设计说明书未建模）
+--
+-- 需求规格说明书 5.3（FR-102 首页）要求「轮播 Banner（可配置图片与跳转链接）」，
+-- 但详细设计说明书第 3 章没有这张表、2.4 节也没有对应的微服务。
+-- 为不擅自新增服务（设计文档的 13 个服务清单是对外承诺），轮播并入**商品中心**
+-- good-api（`/api/goods/banners`），首页的其它数据（热销商品）本来也由它提供，
+-- 且这样能直接复用网关已有的「GET /api/goods/** 公开」白名单与商品管理权限资源。
+-- ---------------------------------------------------------------------
+DROP TABLE IF EXISTS `banner`;
+CREATE TABLE `banner` (
+  `id`           BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `title`        VARCHAR(100) NOT NULL COMMENT '标题（前台可作副标题展示，后台用于辨识）',
+  `image_url`    VARCHAR(255) DEFAULT NULL COMMENT '轮播图片地址；为空时前台渲染纯色/渐变兜底',
+  `link_url`     VARCHAR(255) DEFAULT NULL COMMENT '点击跳转地址（站内路由如 /goods，或外链）',
+  `sort_no`      INT          NOT NULL DEFAULT 0 COMMENT '排序号，小的在前',
+  `enabled`      TINYINT(1)   NOT NULL DEFAULT 1 COMMENT '是否启用（停用后前台不展示）',
+  `description`  VARCHAR(255) DEFAULT NULL COMMENT '备注',
+  `created_time` DATETIME     DEFAULT NULL COMMENT '创建时间',
+  `created_by`   VARCHAR(64)  DEFAULT NULL COMMENT '创建人',
+  `updated_time` DATETIME     DEFAULT NULL COMMENT '更新时间',
+  `updated_by`   VARCHAR(64)  DEFAULT NULL COMMENT '修改人',
+  PRIMARY KEY (`id`),
+  KEY `idx_banner_enabled_sort` (`enabled`,`sort_no`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COMMENT='首页轮播 Banner';
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =====================================================================
@@ -543,6 +569,14 @@ INSERT INTO `seckill_good` (`seckill_id`,`good_id`,`seckill_price`,`stock`,`sold
                             `created_time`,`created_by`,`updated_time`,`updated_by`)
 VALUES (1, 1, 5999.00, 50, 0, 1, '演示秒杀商品，限购1件', NOW(), 'system', NOW(), 'system');
 
+-- 首页轮播（3 条演示位）。图片放在 my.upload.location 下的 banner/ 目录，
+-- 生成脚本见 docs/首页轮播图来源.md；image_url 留空时前台渲染渐变兜底，不会开天窗。
+INSERT INTO `banner` (`title`,`image_url`,`link_url`,`sort_no`,`enabled`,`description`,
+                      `created_time`,`created_by`,`updated_time`,`updated_by`)
+VALUES ('新品首发 · 极锋商城', '/upload/banner/banner-1.png', '/goods', 1, 1, '首页第一条轮播，跳商品列表', NOW(), 'system', NOW(), 'system'),
+       ('手机专享 · 立减不止一点', '/upload/banner/banner-2.png', '/goods/1', 2, 1, '跳商品详情', NOW(), 'system', NOW(), 'system'),
+       ('限时秒杀 · 每天一场', '/upload/banner/banner-3.png', '/seckill', 3, 1, '跳秒杀会场', NOW(), 'system', NOW(), 'system');
+
 -- 行政区划（示例：广东省/广州市/天河区 三级）
 INSERT INTO `t_china_region` (`id`,`name`,`parent_id`,`sort_order`,`level`,`description`)
 VALUES (440000, '广东省', 0, 1, 1, '省'),
@@ -578,7 +612,8 @@ VALUES (0, 1001, '工作台', 'el-icon-house', '/dashboard', 1, '首页', NOW(),
        (0, 1003, '订单管理', 'el-icon-document', '/orders', 3, '交易中心', NOW(), 'system', NOW(), 'system'),
        (0, 1004, '会员管理', 'el-icon-user', '/members', 4, '会员中心', NOW(), 'system', NOW(), 'system'),
        (0, 1005, '秒杀管理', 'el-icon-timer', '/seckills', 5, '秒杀中心', NOW(), 'system', NOW(), 'system'),
-       (0, 1006, '系统管理', 'el-icon-setting', '/system', 6, 'RBAC', NOW(), 'system', NOW(), 'system');
+       (0, 1006, '系统管理', 'el-icon-setting', '/system', 6, 'RBAC', NOW(), 'system', NOW(), 'system'),
+       (0, 1007, '地区管理', 'el-icon-location', '/region', 7, '基础数据', NOW(), 'system', NOW(), 'system');
 
 -- 接口/按钮资源（演示）。value 为接口路径（Ant 风格），type='接口'/'按钮'
 INSERT INTO `t_rbac_resource` (`id`,`name`,`type`,`value`,`description`,`created_time`,`created_by`)
@@ -589,6 +624,7 @@ VALUES
     (1004, '会员管理', '菜单', '/members',   '会员菜单',   NOW(), 'system'),
     (1005, '秒杀管理', '菜单', '/seckills',  '秒杀菜单',   NOW(), 'system'),
     (1006, '系统管理', '菜单', '/system',    '系统菜单',   NOW(), 'system'),
+    (1007, '地区管理', '菜单', '/region',    '地区菜单',   NOW(), 'system'),
     (2001, '品牌-接口',  '接口', '/api/brands/**', '品牌接口', NOW(), 'system'),
     (2002, '分类-接口',  '接口', '/api/categories/**', '分类接口', NOW(), 'system'),
     (2003, '商品-查询',  '接口', '/api/goods', '商品查询写接口', NOW(), 'system'),
@@ -614,7 +650,10 @@ VALUES
     (2017, '角色权限关联-接口','接口','/api/role-perms/**',     '角色-权限关联接口', NOW(), 'system'),
     (2018, '权限资源关联-接口','接口','/api/perm-resources/**', '权限-资源关联接口', NOW(), 'system'),
     (2019, '秒杀商品-接口', '接口', '/api/seckill-goods/**',    '秒杀商品管理接口', NOW(), 'system'),
-    (2020, '订单明细-接口', '接口', '/api/order-items/**',      '订单明细查询接口', NOW(), 'system');
+    (2020, '订单明细-接口', '接口', '/api/order-items/**',      '订单明细查询接口', NOW(), 'system'),
+    -- 地区管理（FR-210）的写接口。不加这一行，管理员在后台点「新增/编辑/删除区划」会 403：
+    -- 网关对 /api/regions/** 只放行 GET，写请求照样要过 RBAC 判定。
+    (2021, '地区-接口',     '接口', '/api/regions/**',          '行政区划维护接口', NOW(), 'system');
 
 -- 权限
 INSERT INTO `t_rbac_perm` (`id`,`name`,`description`,`enabled`,`created_time`,`created_by`)
@@ -622,12 +661,13 @@ VALUES (301, '商品管理权限', '商品中心全部操作', 1, NOW(), 'system
        (302, '订单管理权限', '交易中心全部操作', 1, NOW(), 'system'),
        (303, '会员管理权限', '会员中心全部操作', 1, NOW(), 'system'),
        (304, '秒杀管理权限', '秒杀中心全部操作', 1, NOW(), 'system'),
-       (305, '系统管理权限', 'RBAC 全部操作',     1, NOW(), 'system');
+       (305, '系统管理权限', 'RBAC 全部操作',     1, NOW(), 'system'),
+       (306, '地区管理权限', '行政区划维护',       1, NOW(), 'system');
 
 -- 角色-权限（超管角色1 拥有全部权限）
 INSERT INTO `t_rbac_role_perm` (`role_id`,`perm_id`,`created_time`,`created_by`)
 VALUES (1, 301, NOW(), 'system'), (1, 302, NOW(), 'system'), (1, 303, NOW(), 'system'),
-       (1, 304, NOW(), 'system'), (1, 305, NOW(), 'system');
+       (1, 304, NOW(), 'system'), (1, 305, NOW(), 'system'), (1, 306, NOW(), 'system');
 
 -- 权限-资源（权限 → 菜单/接口资源）
 INSERT INTO `t_rbac_perm_resource` (`resource_id`,`perm_id`,`created_time`,`created_by`)
@@ -643,7 +683,9 @@ VALUES
     (2013, 305, NOW(), 'system'), (2014, 305, NOW(), 'system'),
     (2015, 305, NOW(), 'system'), (2016, 305, NOW(), 'system'),
     (2017, 305, NOW(), 'system'), (2018, 305, NOW(), 'system'),
-    (2019, 304, NOW(), 'system'), (2020, 302, NOW(), 'system');
+    (2019, 304, NOW(), 'system'), (2020, 302, NOW(), 'system'),
+    -- 地区管理：菜单资源 1007 与接口资源 2021 都挂在新增的 306「地区管理权限」上
+    (1007, 306, NOW(), 'system'), (2021, 306, NOW(), 'system');
 
 -- =====================================================================
 -- 完成

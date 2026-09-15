@@ -18,7 +18,11 @@ public interface MemberService {
 
     boolean save(MemberEntity memberEntity);
 
+    /** 修改会员。传了 password 就是改密码（后台「重置密码」走的也是这里），不传则不动密码列 */
     boolean update(MemberEntity memberEntity);
+
+    /** 会员自助改密码：服务端校验旧密码后写入新密码（BCrypt），并把该会员的登录失败锁定一并解除 */
+    boolean changePassword(Long memberId, String oldPassword, String newPassword);
 
     int deleteByIds(List<Long> ids);
 

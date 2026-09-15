@@ -37,4 +37,49 @@
         <include refid="Base_Select"/>
         where id = #{id}
     </select>
+
+    <select id="findByParentId" resultType="RegionEntity">
+        <include refid="Base_Select"/>
+        where parent_id = #{parentId}
+        order by sort_order, id
+    </select>
+
+    <!--
+      id 可显式指定（行政区划编码，如 440000），也可留空自增。
+      注意 parent_id / sort_order / level 在 DDL 里都是 NOT NULL DEFAULT，
+      但 insert 显式列出了这些列，DEFAULT 不生效 —— 三个值都必须给到，
+      否则就是 `Column 'x' cannot be null`（这个坑本项目已经踩过 6 次）。
+    -->
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into t_china_region
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            name, parent_id, sort_order, level, description
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            #{name}, #{parentId}, #{sortOrder}, #{level}, #{description}
+        </trim>
+    </insert>
+
+    <update id="update">
+        update t_china_region
+        <set>
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="parentId != null">parent_id = #{parentId},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+            <if test="level != null">level = #{level},</if>
+            <!-- description 是可空列，这里用 != null 而不是 != ''，让管理员能把说明清空 -->
+            <if test="description != null">description = #{description},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from t_china_region
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
 </mapper>

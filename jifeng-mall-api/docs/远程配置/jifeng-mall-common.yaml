@@ -1,9 +1,17 @@
+# =====================================================================
+# 公共配置模板（发布到 Nacos：namespace/group 均为 jifeng-mall，
+# dataId = jifeng-mall-common.yaml，步骤见 docs/Nacos配置导入清单.md）
+#
+# ⚠️ 本文件是**模板**，所有密码均为占位符，不含任何真实凭据，可以安全提交进仓库。
+#    真实密码放在同目录的 `jifeng-mall-common.local.yaml`（已被 .gitignore 忽略，
+#    不会被提交）——**发布到 Nacos 时请用那一份**。
+# =====================================================================
 spring:
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     url: jdbc:mysql://localhost:3306/shoplook2026?characterEncoding=UTF-8&useSSL=false&autoReconnect=true&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
-    password: 09010402
+    password: <你的MySQL密码>
 
   # Redis：秒杀库存、令牌等。若本机 Redis 未设密码，将 password 留空即可
   data:
@@ -18,7 +26,7 @@ spring:
     host: 127.0.0.1
     port: 5672
     username: guest
-    password: guest
+    password: <你的RabbitMQ密码>
     virtual-host: /
     listener:
       simple:
@@ -33,7 +41,7 @@ spring:
         #nacos服务器的地址
         server-addr: 127.0.0.1:8848
         username: nacos
-        password: 123456
+        password: <你的Nacos密码>
         namespace: jifeng-mall
         group: jifeng-mall
 

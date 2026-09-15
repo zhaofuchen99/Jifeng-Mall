@@ -80,6 +80,15 @@
             <artifactId>slf4j-api</artifactId>
             <scope>provided</scope>
         </dependency>
+
+        <!-- Redis（登录失败计数与锁定用，见 LoginFailureGuard）。
+             provided：只有真正用到它的 member-api / user-api 才引 starter，
+             网关等模块的类路径上不会有它。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
 </project>

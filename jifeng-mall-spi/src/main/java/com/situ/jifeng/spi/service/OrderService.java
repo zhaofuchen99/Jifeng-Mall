@@ -44,6 +44,18 @@ public interface OrderService {
     /** 模拟支付确认 → 已支付 */
     boolean confirmPay(Long orderId);
 
+    /**
+     * 发起退款（模拟，后台操作）：refund_status 无退款 → 退款中。
+     * 仅「已支付」「待收货」且尚未退款的订单可以发起；operator 记入 updated_by（需求 7.5-3 审计）。
+     */
+    boolean refund(Long orderId, String operator);
+
+    /**
+     * 确认退款（模拟，后台操作）：refund_status 退款中 → 已退款，
+     * 订单转为已取消（终态）并按订单类型回补库存。
+     */
+    boolean refundConfirm(Long orderId, String operator);
+
     /** 秒杀下单（内部服务调用）：按秒杀价创建秒杀订单并关联秒杀流水号 */
     OrderEntity createSeckillOrder(Long goodId, Integer qty, java.math.BigDecimal seckillPrice,
                                    String memberAccount, String seckillNo);

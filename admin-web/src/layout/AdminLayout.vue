@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useMenuStore } from '@/stores/menu'
-import { STATIC_MENUS } from '@/config/menu'
 
 const route = useRoute()
 const router = useRouter()
@@ -23,7 +22,8 @@ const ICON_MAP = {
   'el-icon-document': 'Document',
   'el-icon-user': 'User',
   'el-icon-timer': 'Timer',
-  'el-icon-setting': 'Setting'
+  'el-icon-setting': 'Setting',
+  'el-icon-location': 'Location'
 }
 
 function iconOf(name, fallback = 'Menu') {
@@ -111,12 +111,6 @@ function openMall() {
               <template #title>{{ m.name }}</template>
             </el-menu-item>
           </template>
-
-          <!-- 固定附加项（地区管理不在种子菜单里） -->
-          <el-menu-item v-for="s in STATIC_MENUS" :key="s.path" :index="s.path">
-            <el-icon><component :is="s.icon" /></el-icon>
-            <template #title>{{ s.title }}</template>
-          </el-menu-item>
         </el-menu>
 
         <!-- operator 这类没授权的账号会拿到空菜单，给个明确提示 -->

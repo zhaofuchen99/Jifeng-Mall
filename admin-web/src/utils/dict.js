@@ -16,6 +16,17 @@ export const ORDER_STATUS_TAG = {
 
 export const REFUND_STATUS = ['无退款', '退款中', '已退款']
 
+/** 退款状态 → tag 颜色。历史数据 refundStatus 可能为 null，按「无退款」显示 */
+export const REFUND_STATUS_TAG = {
+  无退款: 'info',
+  退款中: 'warning',
+  已退款: 'danger'
+}
+
+export function refundStatusText(v) {
+  return v || '无退款'
+}
+
 /** 资源类型：种子数据里只有「菜单」和「接口」两种 */
 export const RESOURCE_TYPES = ['菜单', '接口', '按钮']
 

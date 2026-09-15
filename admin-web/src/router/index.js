@@ -29,7 +29,8 @@ const routes = [
         children: [
           { path: 'brand', name: 'goodsBrand', component: () => import('@/views/goods/BrandList.vue'), meta: { title: '品牌管理' } },
           { path: 'category', name: 'goodsCategory', component: () => import('@/views/goods/CategoryList.vue'), meta: { title: '分类管理' } },
-          { path: 'good', name: 'goodsGood', component: () => import('@/views/goods/GoodList.vue'), meta: { title: '商品管理' } }
+          { path: 'good', name: 'goodsGood', component: () => import('@/views/goods/GoodList.vue'), meta: { title: '商品管理' } },
+          { path: 'banner', name: 'goodsBanner', component: () => import('@/views/goods/BannerList.vue'), meta: { title: '轮播管理' } }
         ]
       },
 
@@ -75,7 +76,7 @@ const routes = [
         ]
       },
 
-      // ---- 地区（种子菜单里没有，作为固定项挂上）----
+      // ---- 地区（FR-210，菜单来自 t_rbac_menu 的资源 1007）----
       {
         path: 'region',
         name: 'region',

@@ -7,3 +7,10 @@
 *.log
 .env
 .env.*
+
+# 本机真实配置（含密码）——仓库里提交的是占位符模板（*.yaml），
+# 带真实密码的那份命名为 *.local.yaml，靠这条规则挡在仓库外。
+*.local.yaml
+*.local.yml
+*.local.properties
+

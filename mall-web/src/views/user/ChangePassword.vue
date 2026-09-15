@@ -2,7 +2,7 @@
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { login as memberLogin, updateMember } from '@/api/member'
+import { changePassword } from '@/api/member'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -64,18 +64,15 @@ async function onSubmit() {
 
   saving.value = true
   try {
-    // 1) 用当前密码走一次登录，验证旧密码是否正确。
-    //    后端没有「校验密码」的独立接口，而登录本身就是最可靠的校验（BCrypt 比对在服务端做）。
-    await memberLogin({ account: userStore.account, password: form.oldPassword })
-
-    // 2) 写入新密码。PUT /api/members 只更新传了值的字段，所以这里只带 id + password。
-    await updateMember({ id: userStore.memberId, password: form.newPassword })
+    // 旧密码由服务端校验，一处搞定，不需要再拿旧密码单独走一次登录。
+    // 这么改是因为原来那个「先登录验一次」只在客户端，绕过前端直接发请求就跳过了。
+    await changePassword(userStore.memberId, form.oldPassword, form.newPassword)
 
     ElMessage.success('密码修改成功，请用新密码重新登录')
     userStore.logout()
     router.replace({ name: 'login' })
   } catch {
-    // 「账号或密码错误」说明旧密码填错了，拦截器已提示
+    // 「当前密码不正确」/「密码长度 6-32 位」等，拦截器已弹提示
   } finally {
     saving.value = false
   }

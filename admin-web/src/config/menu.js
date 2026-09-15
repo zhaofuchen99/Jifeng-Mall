@@ -12,7 +12,8 @@ export const MENU_CHILDREN = {
   '/goods': [
     { path: '/goods/brand', title: '品牌管理', icon: 'Flag' },
     { path: '/goods/category', title: '分类管理', icon: 'Files' },
-    { path: '/goods/good', title: '商品管理', icon: 'Goods' }
+    { path: '/goods/good', title: '商品管理', icon: 'Goods' },
+    { path: '/goods/banner', title: '轮播管理', icon: 'PictureFilled' }
   ],
   '/seckills': [
     { path: '/seckills/activity', title: '秒杀活动', icon: 'Timer' },
@@ -28,11 +29,7 @@ export const MENU_CHILDREN = {
   ]
 }
 
-/**
- * 固定的附加菜单。
- *
- * 地区管理（需求 FR-210）在种子菜单表里没有对应行——它没有挂到任何
- * 权限资源上。为了不擅自改用户的种子数据，这里作为固定项附在动态菜单之后。
- * 如果之后往 t_rbac_menu 里补了记录，把这里删掉即可。
- */
-export const STATIC_MENUS = [{ path: '/region', title: '地区管理', icon: 'Location' }]
+// 注：地区管理（FR-210）原先在这里有一个硬编码的 STATIC_MENUS 固定项，
+// 因为它当时没有挂到任何权限资源上。补上资源 1007/2021、权限 306 与
+// t_rbac_menu 行之后它已能走动态菜单，固定项删掉了 —— 零授权账号也就
+// 不会再看到点进去 403 的入口（FR-201「无权限的菜单不显示」）。

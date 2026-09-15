@@ -16,5 +16,11 @@ export default {
   ship: (id) => request.put(`/api/orders/${id}/ship`),
 
   /** 取消（仅待付款） */
-  cancel: (id) => request.put(`/api/orders/${id}/cancel`)
+  cancel: (id) => request.put(`/api/orders/${id}/cancel`),
+
+  /** 发起退款（仅已支付/待收货，且退款状态为「无退款」）→ 退款中 */
+  refund: (id) => request.put(`/api/orders/${id}/refund`),
+
+  /** 确认退款（仅退款中）→ 已退款，订单转已取消并回补库存 */
+  refundConfirm: (id) => request.put(`/api/orders/${id}/refund/confirm`)
 }

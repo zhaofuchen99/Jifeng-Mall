@@ -1,16 +1,20 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import memberApi from '@/api/member'
 import { useCrud, useDialog } from '@/composables/useCrud'
 import { enabledTag, enabledText } from '@/utils/dict'
 import { datetime } from '@/utils/format'
 
 /**
- * 会员管理。
+ * 会员管理（需求 FR-207）。
  *
  * 只读 + 有限编辑：会员是前台自己注册的，后台不提供「新增会员」，也不提供删除，
  * 编辑只开放几个真正需要人工修正的字段。
+ *
+ * 「重置密码」是**独立的一次动作**，不并进编辑表单：编辑表单是「照原样改几个字段」，
+ * 而重置密码是「把凭证换掉」，混在一起容易误提交（见下面 EDIT_FIELDS 的说明）。
+ * 后端不另开接口，仍是 `PUT /api/members` 带上 password —— 详细设计 4.5 就是这么定的。
  */
 function listWithoutBlankEnabled(params) {
   // 状态下拉的「全部」是空串，但后端是 <if test="enabled != null">，
@@ -31,7 +35,7 @@ const {
   query: { account: '', name: '', phone: '', enabled: '' }
 })
 
-/** 后台允许修改的字段。password 绝不在其中：一旦提交，后端会当成新密码重新 BCrypt 加密 */
+/** 后台「编辑会员」允许修改的字段。password 绝不在其中——改密码走上面的「重置密码」动作 */
 const EDIT_FIELDS = ['name', 'sex', 'phone', 'email', 'qq', 'wechat', 'enabled', 'description']
 
 const dlg = useDialog(() => ({ name: '', sex: '', phone: '', email: '', qq: '', wechat: '', enabled: true, description: '' }))
@@ -79,6 +83,60 @@ async function onSubmit() {
     await load()
   } finally {
     submitting.value = false
+  }
+}
+
+// ---------------- 重置密码（FR-207） ----------------
+
+const resetVisible = ref(false)
+const resetting = ref(false)
+const resetFormRef = ref()
+const resetForm = ref({ id: null, account: '', password: '', confirmPassword: '' })
+
+const resetRules = {
+  password: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    // 与前台注册页保持一致（Register.vue 是 6-32 位）
+    { min: 6, max: 32, message: '密码长度 6-32 位', trigger: 'blur' }
+  ],
+  confirmPassword: [
+    { required: true, message: '请再次输入新密码', trigger: 'blur' },
+    {
+      validator: (_rule, value, callback) => {
+        if (value !== resetForm.value.password) callback(new Error('两次输入的密码不一致'))
+        else callback()
+      },
+      trigger: 'blur'
+    }
+  ]
+}
+
+function onResetPassword(row) {
+  resetForm.value = { id: row.id, account: row.account, password: '', confirmPassword: '' }
+  resetVisible.value = true
+  resetFormRef.value?.clearValidate()
+}
+
+async function onSubmitReset() {
+  const ok = await resetFormRef.value.validate().catch(() => false)
+  if (!ok) return
+
+  const confirmed = await ElMessageBox.confirm(
+    `确定要把会员「${resetForm.value.account}」的密码重置掉吗？\n` +
+      '重置后原密码立即失效，会员必须用新密码登录。',
+    '重置密码',
+    { type: 'warning' }
+  ).catch(() => false)
+  if (!confirmed) return
+
+  resetting.value = true
+  try {
+    // 只提交 id + password：update 是条件更新，其余列不传就不会被改动
+    await memberApi.update({ id: resetForm.value.id, password: resetForm.value.password })
+    ElMessage.success('密码已重置，该会员的登录失败锁定也已解除')
+    resetVisible.value = false
+  } finally {
+    resetting.value = false
   }
 }
 
@@ -163,10 +221,11 @@ onMounted(load)
         <el-table-column label="最后登录时间" width="160">
           <template #default="{ row }">{{ datetime(row.lastLoginTime) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="130" fixed="right" align="center">
+        <el-table-column label="操作" width="200" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="primary" @click="onDetail(row)">详情</el-button>
             <el-button link type="primary" @click="onEdit(row)">编辑</el-button>
+            <el-button link type="danger" @click="onResetPassword(row)">重置密码</el-button>
           </template>
         </el-table-column>
 
@@ -295,6 +354,48 @@ onMounted(load)
         <div class="dialog-footer">
           <el-button @click="visible = false">取消</el-button>
           <el-button type="primary" :loading="submitting" @click="onSubmit">保存</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- 重置密码 -->
+    <el-dialog v-model="resetVisible" title="重置会员密码" width="460px" destroy-on-close>
+      <el-alert
+        type="warning"
+        show-icon
+        :closable="false"
+        class="mb-16"
+        title="重置后原密码立即失效"
+        description="请把新密码告知会员，并提醒其登录后自行修改。已签发的登录令牌在有效期内仍然可用。"
+      />
+      <el-form ref="resetFormRef" :model="resetForm" :rules="resetRules" label-width="90px">
+        <el-form-item label="会员账号">
+          <el-input :model-value="resetForm.account" disabled />
+        </el-form-item>
+        <el-form-item label="新密码" prop="password">
+          <el-input
+            v-model="resetForm.password"
+            type="password"
+            placeholder="6-32 位"
+            show-password
+            autocomplete="new-password"
+          />
+        </el-form-item>
+        <el-form-item label="确认密码" prop="confirmPassword">
+          <el-input
+            v-model="resetForm.confirmPassword"
+            type="password"
+            placeholder="再输一遍"
+            show-password
+            autocomplete="new-password"
+          />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="resetVisible = false">取消</el-button>
+          <el-button type="primary" :loading="resetting" @click="onSubmitReset">确认重置</el-button>
         </div>
       </template>
     </el-dialog>

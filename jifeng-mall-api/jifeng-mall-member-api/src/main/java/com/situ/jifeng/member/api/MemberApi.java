@@ -5,6 +5,7 @@ import com.situ.jifeng.common.BusinessException;
 import com.situ.jifeng.common.JsonResp;
 import com.situ.jifeng.common.JwtUtil;
 import com.situ.jifeng.common.PaginateInfo;
+import com.situ.jifeng.spi.model.ChangePasswordDTO;
 import com.situ.jifeng.spi.model.LoginParam;
 import com.situ.jifeng.spi.model.LoginUserInfo;
 import com.situ.jifeng.spi.model.MemberEntity;
@@ -124,12 +125,75 @@ public class MemberApi {
      * @return 响应结果
      */
     @PutMapping
-    public JsonResp update(@RequestBody MemberEntity me) {
+    public JsonResp update(@RequestBody MemberEntity me,
+                           @RequestHeader(name = "X-Audience", required = false) String audience) {
+        // 这是**后台**的会员管理接口（可改任意会员，传了 password 就是重置密码）。
+        // 会员自助改资料/改密码走下面那两个 /id/{id} 开头的接口。
+        // 网关已按路径把会员挡在外面，这里再兜一道，避免只依赖网关一层。
+        assertAdmin(audience, "修改会员");
         boolean success = memberService.update(me);
         if (success) {
             return JsonResp.success(me);
         } else {
             return JsonResp.fail(500, "修改会员失败");
+        }
+    }
+
+    /**
+     * 会员自助修改资料（前台「个人信息」页）。
+     *
+     * <p><b>为什么不能用上面的裸 {@code PUT /api/members}</b>：那是后台的会员管理接口，
+     * 网关的 {@code MEMBER_PATHS} 里只有 {@code /api/members/id/**} 与
+     * {@code /api/members/account/**}，裸路径把会员挡住了。而如果为了放行它把裸路径加进白名单，
+     * 由于本方法此前没有归属校验，<b>任何会员都能改别人的密码完成账号接管</b>。
+     * 所以会员的自助入口一律走已经放行且自带归属校验的 {@code /api/members/id/{id}} 前缀。</p>
+     *
+     * <p>请求体里的 {@code password} 会被<b>强制丢弃</b>，改密码只能走下面那个接口——
+     * 否则就绕过了那里的旧密码校验。</p>
+     */
+    @PutMapping("/id/{id}")
+    public JsonResp updateSelf(@PathVariable Long id, @RequestBody MemberEntity me,
+                               @RequestHeader(name = "X-User-Id", required = false) String userId,
+                               @RequestHeader(name = "X-Audience", required = false) String audience) {
+        assertSelf(id, userId, null, null, audience);
+        me.setId(id);
+        me.setPassword(null);
+        me.setAccount(null);
+        me.setEnabled(null);
+        boolean success = memberService.update(me);
+        if (success) {
+            return JsonResp.success(me);
+        } else {
+            return JsonResp.fail(500, "修改会员失败");
+        }
+    }
+
+    /**
+     * 会员自助修改密码（前台「修改密码」页）。
+     *
+     * <p>旧密码由<b>服务端</b>校验。原先前台是「拿旧密码再走一次登录接口」间接验证的，
+     * 那层校验只在浏览器里，绕过前端直接发请求就能跳过——令牌被盗时会把真正的会员锁在门外。</p>
+     */
+    @PutMapping("/id/{id}/password")
+    public JsonResp changePassword(@PathVariable Long id, @RequestBody ChangePasswordDTO dto,
+                                   @RequestHeader(name = "X-User-Id", required = false) String userId,
+                                   @RequestHeader(name = "X-Audience", required = false) String audience) {
+        assertSelf(id, userId, null, null, audience);
+        boolean success = memberService.changePassword(id, dto.getOldPassword(), dto.getNewPassword());
+        if (success) {
+            return JsonResp.success(true);
+        } else {
+            return JsonResp.fail(500, "修改密码失败");
+        }
+    }
+
+    /**
+     * 后台专属动作：会员即使拿着合法令牌也不该能调后台的会员管理接口。
+     * 与 {@link #assertSelf} 一致，放行"无 X-Audience 头"的服务间直连。
+     */
+    private void assertAdmin(String audience, String action) {
+        if (audience != null && !JwtUtil.AUDIENCE_ADMIN.equals(audience)) {
+            throw new BusinessException(403, "无权限执行" + action + "操作");
         }
     }
 

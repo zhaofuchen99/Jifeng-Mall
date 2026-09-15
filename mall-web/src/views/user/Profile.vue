@@ -92,9 +92,9 @@ async function save({ silent = false } = {}) {
 
   saving.value = true
   try {
-    // 注意不要把 password 一起回传——改了才传，见 ChangePassword.vue
-    await updateMember({
-      id: form.id,
+    // 改资料走 /api/members/id/{id}（会员自助入口）；改密码走 changePassword，
+    // 这里不会把 password 带上去
+    await updateMember(form.id, {
       name: form.name,
       sex: form.sex || null,
       birthday: form.birthday || null,
