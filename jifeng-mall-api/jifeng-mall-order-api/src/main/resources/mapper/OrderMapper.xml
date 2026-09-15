@@ -139,4 +139,21 @@
         </foreach>
     </delete>
 
+    <!--
+      超时关单的兜底扫描。命中 order 表的 idx_order_status 索引。
+
+      刻意不过滤 is_del：MQ 延时消息那条路径也不过滤（它直接按 id 调 cancel()），
+      两条路径要保证对同一批订单的行为完全一致，否则兜底会与主路径产生分歧。
+      逻辑删除的待付款订单同样占着库存，关掉并回补才是对的。
+    -->
+    <select id="findTimeoutOrderIds" resultType="java.lang.Long">
+        select id
+        from `order`
+        where status = #{status}
+          and created_time is not null
+          and created_time &lt; #{deadline}
+        order by created_time
+        limit #{limit}
+    </select>
+
 </mapper>

@@ -126,6 +126,27 @@
         </foreach>
     </delete>
 
+    <!--
+      品牌/分类删除前的引用计数（设计文档 5.3「删除校验商品引用」）。
+      ⚠️ is_del 不传就**不过滤**逻辑删除（与 findAll 的行为一致），
+      调用方要显式传 isDel=false —— 已逻辑删除的商品不该阻止品牌/分类被删。
+    -->
+    <select id="count" resultType="long">
+        select count(*)
+        from good
+        <where>
+            <if test="brandId != null">
+                and brand_id = #{brandId}
+            </if>
+            <if test="categoryId != null">
+                and category_id = #{categoryId}
+            </if>
+            <if test="isDel != null">
+                and is_del = #{isDel}
+            </if>
+        </where>
+    </select>
+
     <!-- 扣减库存（防超卖）：仅库存充足时扣减 -->
     <update id="deductStock">
         update good

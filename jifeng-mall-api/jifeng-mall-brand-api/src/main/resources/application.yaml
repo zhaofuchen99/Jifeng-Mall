@@ -20,5 +20,7 @@ spring:
 server:
   port: 10010
 
-
-
+# 启用openfeign服务降级（删除品牌/分类前要调 good-api 校验商品引用）
+feign:
+  sentinel:
+    enabled: on

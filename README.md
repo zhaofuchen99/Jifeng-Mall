@@ -19,7 +19,7 @@
 | 缓存 | Redis（秒杀库存 + Lua 原子扣减） |
 | 消息队列 | RabbitMQ（订单超时关单 / 秒杀异步下单） |
 | 认证 | JWT（jjwt，HS384，admin 12h / member 7d）+ BCrypt |
-| 数据库 | MySQL 9.2.7（库 `shoplook2026`，名称沿用旧名） |
+| 数据库 | MySQL 8.0（库 `shoplook2026`，名称沿用旧名） |
 | 前端 | Vue 3 + Vite + Pinia + Vue Router + Axios（+ Element Plus） |
 
 ## 模块结构
@@ -67,6 +67,10 @@ shoplook2026-parent/            # 仓库根目录名沿用旧名（改名会破�
    - `mall-web` → http://localhost:5173，演示账号 `member / 123456`
    - `admin-web` → http://localhost:5174，演示账号 `admin / 123456`
      （`operator / 123456` 未分配角色，登录后菜单为空，用于演示权限隔离）
+
+> 以上是**开发形态**（各服务在 IDE 里跑、前端用 vite dev server）。
+> **生产形态**（fat jar + Nginx 托管前端静态资源并反代网关）的完整步骤见
+> `docs/部署文档.md`，Nginx 配置在 `deploy/nginx/nginx.conf`。
 
 ## 已实现能力
 
@@ -118,8 +122,17 @@ shoplook2026-parent/            # 仓库根目录名沿用旧名（改名会破�
 
 ## 文档
 
+- `docs/部署文档.md` — **环境搭建与部署步骤**（Nacos / MySQL / Redis / RabbitMQ /
+  Nginx / 13 个服务 / 2 个前端），每条命令均实机跑通
+- `docs/测试报告.md` — **功能 / 接口 / 安全测试报告**（11 个脚本、346 条断言）
+- `docs/运维手册.md` — **监控、备份、故障排查**（含 9 条已知风险清单）
+- `docs/交付物清单.md` — **交付物对照 + SRS 10.2 验收六条逐项核对**
+- `docs/sql/upgrade/` — 数据库**增量变更脚本**（3 个，幂等）
 - `docs/接口文档.md` — 前后端接口契约
 - `docs/Nacos配置导入清单.md` — Nacos 配置发布步骤
+- `docs/秒杀压测报告.md` — 秒杀并发压测（防超卖/防重复/最终一致 + 性能对照 NFR-001）
 - `docs/商品图来源.md` — 演示商品图的来源与版权提示
 - `docs/首页轮播图来源.md` — 首页轮播图的生成方式与前端显示约定
-- `docs/秒杀压测报告.md` — 秒杀并发压测（防超卖/防重复/最终一致 + 性能对照 NFR-001）
+- `tools/verify/README.md` — **验证脚本使用说明**（前置条件、执行顺序、数据重置）
+- `deploy/nginx/nginx.conf` — 生产形态的 Nginx 配置（已实测）
+- `deploy/windows/{start,stop}_all_services.bat` — **不依赖 IDEA 的一键启停**（13 个服务走 fat jar）

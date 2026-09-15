@@ -64,6 +64,11 @@ public class GoodServiceImpl implements GoodService {
     }
 
     @Override
+    public long count(GoodSearchBean ge) {
+        return goodMapper.count(ge);
+    }
+
+    @Override
     public boolean deductStock(Long id, Integer qty) {
         return goodMapper.deductStock(id, qty) > 0;
     }

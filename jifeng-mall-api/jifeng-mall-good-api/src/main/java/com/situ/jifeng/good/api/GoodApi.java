@@ -57,6 +57,20 @@ public class GoodApi {
         return JsonResp.success(pageInfo);
     }
 
+    /**
+     * 按条件统计商品数。供 brand-api / category-api 在删除前做**引用校验**用
+     * （设计文档 5.3「删除校验商品引用」），避免删掉品牌/分类后商品变孤儿。
+     *
+     * <p>⚠️ 调用方必须显式传 {@code isDel=false}：{@code GoodSearchBean} 不传 isDel 时
+     * **不过滤**逻辑删除，会把已删除的商品也算成引用，导致永远删不掉。</p>
+     *
+     * <p>只返回一个数字，不是分页对象 —— 校验场景没必要把商品实体查出来。</p>
+     */
+    @GetMapping("/count")
+    public JsonResp count(GoodSearchBean ge) {
+        return JsonResp.success(goodService.count(ge));
+    }
+
     @GetMapping("/id/{id}")
     public JsonResp findById(@PathVariable Long id, @RequestParam(defaultValue = "false") Boolean full) {
         GoodEntity good = goodService.findById(id);

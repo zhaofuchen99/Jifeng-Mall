@@ -29,4 +29,12 @@ public interface GoodMapper {
      * 回补库存：取消订单 / 超时关单时回补库存。
      */
     int addBackStock(@Param("id") Long id, @Param("qty") Integer qty);
+
+    /**
+     * 按条件统计商品数（品牌/分类删除前的引用校验用）。
+     *
+     * <p>只支持引用校验需要的几个条件，故意做成独立语句而不是复用 {@code findAll} 的 where ——
+     * 校验场景只要一个 count，没必要把 23 个列的实体查出来再 {@code size()}。</p>
+     */
+    long count(GoodSearchBean ge);
 }

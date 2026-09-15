@@ -19,3 +19,8 @@ spring:
 
 server:
   port: 10011
+
+# 启用openfeign服务降级（删除分类前要调 good-api 校验商品引用）
+feign:
+  sentinel:
+    enabled: on

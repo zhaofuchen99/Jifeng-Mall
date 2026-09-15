@@ -40,7 +40,12 @@ public class OrderServiceImpl implements OrderService {
 
     private static final Logger log = LoggerFactory.getLogger(OrderServiceImpl.class);
 
-    static final String STATUS_PENDING_PAY = "待付款";
+    /**
+     * 订单状态字典。本常量是 public 的：超时关单的兜底扫描
+     * （{@code OrderTimeoutCloseTask}）需要拿它做查询条件，
+     * 与其在调度器里再写一份字面量、日后改字典时漏改，不如共用一处。
+     */
+    public static final String STATUS_PENDING_PAY = "待付款";
     static final String STATUS_PAID = "已支付";
     static final String STATUS_SHIPPED = "待收货";
     static final String STATUS_CONFIRMED = "已确认";

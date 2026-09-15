@@ -1,7 +1,8 @@
 # 启动前置配置清单（Nacos / MySQL / Redis / RabbitMQ）
 
 > 本文档整理「从零到服务可启动」需要准备的中间件与配置，用于本机/已有环境部署。
-> 对应版本：Nacos 3.x、MySQL 9.2.7、Redis、RabbitMQ 3.x；后端 Java 25。
+> 对应版本（本机实测）：Nacos 3.2.4、MySQL 8.0.46、Redis 8.0.5、
+> RabbitMQ 4.3.5（Erlang 27.3.4.5）；后端 Java 25.0.4。
 
 ---
 
@@ -98,7 +99,9 @@ group `jifeng-mall` 无需预建，发布配置时填写即可。
 
 ## 5 启动后自检
 
-- Nacos「服务列表」应看到 13 个实例（12 api + gateway），命名空间为 `4efec2d9-…`
+- Nacos「服务列表」应看到 13 个实例（12 api + gateway），命名空间为 `jifeng-mall`
+  （⚠️ 早期版本的本清单一度把这里写成 `4efec2d9-…`，那是改造前的 UUID 命名空间，
+  与代码里 14 个 `application.yaml` 写的 `namespace: jifeng-mall` 矛盾。**以代码为准**。）
 - 网关连通性：`GET http://localhost:8888/api/goods?pageNo=1&pageSize=5` 应返回统一 `JsonResp`
 - 秒杀库存预热：启动 seckill-api 后约 10 秒，日志出现「秒杀库存预热完成」；
   Redis 中应存在 `seckill:stock:{seckillGoodId}`（间隔可通过 `jifeng-mall.seckill.preheat-interval-ms` 调整）
